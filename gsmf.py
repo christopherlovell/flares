@@ -1,6 +1,5 @@
 
 import eagle as E
-import pickle as pcl
 import numpy as np
 
 import matplotlib.pyplot as plt

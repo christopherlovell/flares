@@ -1,6 +1,5 @@
 
 import eagle as E
-import pickle as pcl
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -56,7 +55,7 @@ fig, ((ax1,ax2,ax3),(ax4,ax5,ax6)) = plt.subplots(2,3,figsize=(12,8))
 axes = [ax1,ax2,ax3,ax4,ax5,ax6]
 
 
-for ax, tag, rtag in zip(axes, fl.tags[[3,4,5,7,9,10]], fl.ref_tags[[1,2,3,4,5,5]]): 
+for ax, tag, rtag in zip(axes, fl.tags[[5,6,7,8,9,10]], fl.ref_tags[[1,2,3,4,5,7]]): 
     
     phi_all = np.zeros(len(massBins))
     hist_all = np.zeros(len(massBins))
