@@ -6,21 +6,35 @@ class flares:
 
     def __init__(self):
 
-        self.halos = ['0000','0001','0002','0003','0005','0014','0015',
-                 '0016','0017','0018','0019','0020','0021','0022',
-                 '0023','0024','0025','0026','0027','0028','0029','0030']
+        self.halos = np.array([
+                 # '0000','0001','0002','0003','0005','0014','0015',
+                 # '0016',
+                 '0017',
+                 #'0018',
+                 '0019',
+                 #'0020',
+                 # '0021',
+                 #'0022',
+                 '0023',
+                 #'0024',
+                 '0025',
+                 #'0026',
+                 '0027',
+                 #'0028',
+                 '0029'])#,'0030'])
         
-        self.tags = ['000_z015p048','001_z012p762','002_z011p146', 
-                     '003_z009p934','004_z008p985','005_z008p218', 
-                     '006_z007p583','007_z007p047','008_z006p587',  
-                     '009_z006p188','010_z005p837']
-
-        self.alt_tags = ['000_z015p048','002_z012p762',
-                         '003_z011p146','004_z009p934','005_z008p985', 
-                         '006_z008p218','007_z007p583','008_z007p047', 
-                         '009_z006p587','010_z006p188','011_z005p837'] # '001_z013p989',
+        self.tags = np.array(['000_z015p000','001_z014p000','002_z013p000',
+                              '003_z012p000','004_z011p000','005_z010p000',
+                              '006_z009p000','007_z008p000','008_z007p000',
+                              '009_z006p000','010_z005p000','011_z004p770'])
         
         self.directory = '/cosma7/data/dp004/dc-love2/data/G-EAGLE/'
+        self.ref_directory = '/cosma5/data/Eagle/ScienceRuns/Planck1/L0100N1504/PE/REFERENCE/data'
+        self.agn_directory = '/cosma5/data/Eagle/ScienceRuns/Planck1/L0050N0752/PE/S15_AGNdT9/data'
+
+        self.ref_tags = np.array(['001_z015p132','002_z009p993','003_z008p988',
+                                  '004_z008p075','005_z007p050','006_z005p971',
+                                  '007_z005p487','008_z005p037','009_z004p485'])
 
 
     def check_snap_exists(self,halo,snap):
@@ -78,4 +92,30 @@ class flares:
     
         return(min(xmax,ymax,zmax,xmin,ymin,zmin) - cut)
  
+
+    def calc_df(self, mstar, tag, volume, massBinLimits):
+
+        hist, dummy = np.histogram(np.log10(mstar), bins = massBinLimits)
+        hist = np.float64(hist)
+        phi = (hist / volume) / (massBinLimits[1] - massBinLimits[0])
+        phi_sigma = (np.sqrt(hist) / volume) /\
+                    (massBinLimits[1] - massBinLimits[0]) # Poisson errors
+
+        return phi, phi_sigma, hist
+    
+    
+    def plot_df(self, ax, phi, phi_sigma, hist, massBins, 
+                label, color, hist_lim=10, lw=3):
+    
+        mask = (hist >= hist_lim)
+        ax.plot(np.log10(massBins[mask][phi[mask] > 0.]),
+                np.log10(phi[mask][phi[mask] > 0.]),
+                label=label, lw=lw, c=color, alpha=0.7)
+    
+        i = np.where(hist >= hist_lim)[0][-1]
+        ax.plot(np.log10(massBins[i:][phi[i:] > 0.]),
+                np.log10(phi[i:][phi[i:] > 0.]),
+                lw=lw, linestyle='dotted', c=color, alpha=0.7)
+
+
 

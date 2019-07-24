@@ -6,111 +6,97 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-from misc import *
-from scipy.spatial.distance import cdist
-
-def plot_gsmf(mstar, tag, volume, ax, massBins, massBinLimits, 
-              label, color, hist_lim=10, lw=3):
-    
-    hist, dummy = np.histogram(np.log10(mstar), bins = massBinLimits)
-    hist = np.float64(hist)
-    phi = (hist / volume) / (massBinLimits[1] - massBinLimits[0])
-    phi_sigma = (np.sqrt(hist) / volume) / (massBinLimits[1] - massBinLimits[0]) # Poisson errors
-
-    mask = (hist >= hist_lim)
-    ax.plot(np.log10(massBins[mask][phi[mask] > 0.]), np.log10(phi[mask][phi[mask] > 0.]), 
-            label=label, lw=lw, c=color, alpha=0.7)
-    
-    i = np.where(hist >= hist_lim)[0][-1]
-    ax.plot(np.log10(massBins[i:][phi[i:] > 0.]), np.log10(phi[i:][phi[i:] > 0.]), 
-            lw=lw, linestyle='dotted', c=color, alpha=0.7)
-    
-    return phi, phi_sigma, hist
-
-
 
 massBinLimits = np.linspace(7.45, 13.25, 30)
 massBins = np.logspace(7.55, 13.15, 29)
 print(massBinLimits)
 print(np.log10(massBins))
 
-mstar = pcl.load(open('pcls/mstar.p','rb'))
-sfr = pcl.load(open('pcls/sfr.p','rb'))
-coods = pcl.load(open('pcls/coods.p','rb'))
+import flares
+from h5py_utilities import write_data_h5py, create_group_h5py, load_dict_from_hdf5, load_h5py
+
+fl = flares.flares()
+
+## Load GEAGLE ## 
+fname = 'data/flares_%d.h5'
+mstar = load_dict_from_hdf5(fname, 'mstar')
+R = load_dict_from_hdf5(fname, 'radius')
+vmask = load_dict_from_hdf5(fname, 'masks')
 
 
-gsmf_R = {halo: {} for halo in halos}
-gsmf_mask = {halo: {} for halo in halos}
-
-for halo in halos:
-    for tag in tags:
-
-        # median protocluster galaxy coordinate
-        med_cood = np.median(coods[halo][tag], axis=0)
-
-        # max distance of protocluster galaxy from median
-        gsmf_R[halo][tag] = cdist([med_cood], coods[halo][tag]).max()
-
-        print(halo, tag, gsmf_R[halo][tag])
-
-        # mask all galaxies within this radius
-        gsmf_mask[halo][tag] = cdist([med_cood], coods[halo][tag])[0] < gsmf_R[halo][tag]
+## Load Periodic ##
+fname = 'data/periodic_%d.h5'
+mstar_ref = load_dict_from_hdf5(fname, 'ref/mstar')
+mstar_agn = load_dict_from_hdf5(fname, 'agn/mstar')
 
 
-# pcl.dump(gsmf_R, open('pcls/gsmf_R.p','wb'))
-# pcl.dump(gsmf_mask, open('pcls/gsmf_mask.p','wb'))
+## Overdensity Weights ##
+dat = np.loadtxt('../ic_selection/weights.txt', skiprows=1, delimiter=',')
+weights = dat[:,8]
+index = dat[:,1]
 
+
+if len(weights) != len(fl.halos):
+    print("Warning! number of weights not equal to number of halos")
 
 #### Plot GSMF ####
 
-fig = plt.figure(figsize=(9,10), dpi=150)
+fig, ax = plt.subplots(1,1,figsize=(6,6))
 
-gs = gridspec.GridSpec(8, 3)
-gs.update(wspace=0., hspace=0.)
+tag_idx = [10]
+tag = fl.tags[10]
+rtag = fl.ref_tags[5]
 
-ax1 = plt.subplot(gs[0:3, 0])
-ax2 = plt.subplot(gs[0:3, 1])
-ax3 = plt.subplot(gs[0:3, 2])
-ax4 = plt.subplot(gs[4:7, 0])
-ax5 = plt.subplot(gs[4:7, 1])
-ax6 = plt.subplot(gs[4:7, 2])
+print(tag,rtag)
 
-axes = [ax1,ax2,ax3,ax4,ax5,ax6]
+z = float(tag[5:].replace('p','.'))
+scale_factor = 1. / (1+z)
 
-for ax, tag in zip(axes, tags): 
+phi_all = np.zeros(len(massBins))
+hist_all = np.zeros(len(massBins))
 
-    z = float(tag[5:].replace('p','.'))
-    scale_factor = 1. / (1+z)
+for i,halo in enumerate(fl.halos):
+
+    w = weights[np.where(["%04d"%i == halo for i in index])[0]]
     
-    mstar_temp = np.hstack([mstar[halo][tag][gsmf_mask[halo][tag]] for halo in halos])
+    print(i,halo,w)
+
+    mstar_temp = mstar[halo][tag][vmask[halo][tag]]
     mstar_temp = mstar_temp[mstar_temp > 0.] * 1e10
 
-    V = np.sum([(4./3) * np.pi * (gsmf_R[halo][tag])**3 for halo in halos])
+    V = (4./3) * np.pi * (R[halo][tag])**3
+    if i == 0:
+        V0 = V
     
-    phi_pc, dummy, dummy = plot_gsmf(mstar_temp, tag, V, ax, 
-                                     massBins, massBinLimits, 'Protocluster', 'black')
-    
-    ax.text(0.1, 0.1, '$z = %.1f$'%z, transform=ax.transAxes, size=12)
-    ax.set_xlim(8, 12.6)
-    ax.set_ylim(-6, -.5) 
-    ax.grid(alpha=0.5)
-    
+    phi, phi_sigma, hist = fl.calc_df(mstar_temp, tag, V, massBinLimits) 
 
-for ax in [ax2,ax3,ax5,ax6]:
-    ax.set_yticklabels([])
-    
-# for ax in [ax1,ax2,ax3]:
-#     ax.set_xticklabels([])
-    
-    
-ax1.set_ylabel('$\mathrm{log_{10}}\,\phi$', size=13)
-ax4.set_ylabel('$\mathrm{log_{10}}\,\phi$', size=13)
-ax5.set_xlabel('$\mathrm{log_{10}} \, (M_{*} \,/\, M_{\odot})$', size=13)
-ax2.set_xlabel('$\mathrm{log_{10}} \, (M_{*} \,/\, M_{\odot})$', size=13)
+    V_factor = V0 / V
 
-ax1.legend(frameon=False, loc=1);
-ax6.legend()
+    phi_all += np.array(phi) * V_factor * w
+    hist_all += hist
 
-plt.show()
 
-# fig.savefig('output/gsmf.png', dpi=300, bbox_inches='tight')
+fl.plot_df(ax, phi_all, phi_sigma, hist_all, massBins=massBins, color='C0', label='G-EAGLE')
+
+## Ref
+phi, phi_sigma, hist = fl.calc_df(mstar_ref[rtag] * 1e10, rtag, 100**3, massBinLimits)
+fl.plot_df(ax, phi, phi_sigma, hist, massBins, color='C1', label='Ref')
+
+## AGN
+phi, phi_sigma, hist = fl.calc_df(mstar_agn[rtag] * 1e10, rtag, 50**3, massBinLimits)
+fl.plot_df(ax, phi, phi_sigma, hist, massBins, color='C2', label='AGNdT9')
+
+
+
+ax.text(0.1, 0.1, '$z = %.1f$'%z, transform=ax.transAxes, size=12)
+ax.set_xlim(8, 11.6)
+ax.set_ylim(-6, -1.5) 
+ax.grid(alpha=0.5)
+    
+ax.set_ylabel('$\mathrm{log_{10}}\,\phi$', size=13)
+ax.set_xlabel('$\mathrm{log_{10}} \, (M_{*} \,/\, M_{\odot})$', size=13)
+
+ax.legend(frameon=False, loc=1);
+
+# plt.show()
+fig.savefig('images/gsmf_%.2f.png'%z, dpi=150, bbox_inches='tight')
