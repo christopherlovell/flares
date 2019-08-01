@@ -2,12 +2,14 @@
 import eagle as E
 import numpy as np
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+mpl.rcParams['text.usetex'] = True
 
 
-massBinLimits = np.linspace(7.45, 13.25, 30)
-massBins = np.logspace(7.55, 13.15, 29)
+massBinLimits = np.linspace(7.4, 13.4, 21)
+massBins = np.logspace(7.55, 13.25, 20)
 print(massBinLimits)
 print(np.log10(massBins))
 
@@ -81,25 +83,25 @@ for ax, tag, rtag in zip(axes, fl.tags[[5,6,7,8,9,10]], fl.ref_tags[[1,2,3,4,5,7
         hist_all += hist
   
     
-    fl.plot_df(ax, phi_all, phi_sigma, hist_all, massBins=massBins, color='C0', label='G-EAGLE')
+    fl.plot_df(ax, phi_all, phi_sigma, hist_all, massBins=massBins, color='C0', label='G-EAGLE', lw=2)
 
     ## Ref
     phi, phi_sigma, hist = fl.calc_df(mstar_ref[rtag] * 1e10, rtag, 100**3, massBinLimits)
-    fl.plot_df(ax, phi, phi_sigma, hist, massBins, color='C1', label='Ref')
+    fl.plot_df(ax, phi, phi_sigma, hist, massBins, color='C1', label='Ref (100 Mpc)', lw=2)
     
     ## AGN
     phi, phi_sigma, hist = fl.calc_df(mstar_agn[rtag] * 1e10, rtag, 50**3, massBinLimits)
-    fl.plot_df(ax, phi, phi_sigma, hist, massBins, color='C2', label='AGNdT9')
+    fl.plot_df(ax, phi, phi_sigma, hist, massBins, color='C2', label='AGNdT9 (50 Mpc)', lw=2)
  
 
     z = float(tag[5:].replace('p','.'))
-    ax.text(0.1, 0.2, '$z (resim) = %.2f$'%z, transform=ax.transAxes, size=12)
-    z = float(rtag[5:].replace('p','.'))
-    ax.text(0.1, 0.1, '$z (periodic) = %.2f$'%z, transform=ax.transAxes, size=12)
+    ax.text(0.1, 0.1, '$\mathrm{z = %.2f}$'%z, transform=ax.transAxes, size=12)
+    # z = float(rtag[5:].replace('p','.'))
+    # ax.text(0.6, 0.8, '$z (periodic) = %.2f$'%z, transform=ax.transAxes, size=12)
     
-    ax.set_xlim(8, 11.6)
-    ax.set_ylim(-6, -1.5) 
-    ax.grid(alpha=0.5)
+    ax.set_xlim(8, 11.8)
+    ax.set_ylim(-7, -1.5) 
+    ax.grid(alpha=0.3)
     
 
 for ax in [ax2,ax3,ax5,ax6]:
@@ -111,7 +113,7 @@ ax5.set_xlabel('$\mathrm{log_{10}} \, (M_{*} \,/\, M_{\odot})$', size=13)
 ax2.set_xlabel('$\mathrm{log_{10}} \, (M_{*} \,/\, M_{\odot})$', size=13)
 
 ax1.legend(frameon=False, loc=1);
-ax6.legend()
+# ax6.legend()
 
 # plt.show()
-fig.savefig('images/gsmf_multi.png', dpi=300, bbox_inches='tight')
+fig.savefig('images/gsmf_multi.png', dpi=200, bbox_inches='tight')

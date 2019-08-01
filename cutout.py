@@ -11,11 +11,15 @@ fl = flares.flares()
 centre = [3200./2,3200./2,3200./2]
 fname = 'data/flares_%d.h5'
 
-if check_h5py(fname,'radius'):
-    r = load_dict_from_hdf5(fname,'radius')
-else:
-    r = {h: {t: 0. for t in fl.tags} for h in fl.halos}
-    save_dict_to_hdf5(dic=r,filename=fname,groupname='radius')
+# if False: #check_h5py(fname,'radius'):
+#     r = load_dict_from_hdf5(fname,'radius')
+# else:
+with h5py.File('data/flares_%d.h5','a',driver='family') as f:
+    del f['radius']
+
+
+r = {h: {t: 0. for t in fl.tags} for h in fl.halos}
+save_dict_to_hdf5(dic=r,filename=fname,groupname='radius')
 
 
 create_group_h5py(fname,'masks')

@@ -7,16 +7,12 @@ class flares:
     def __init__(self):
 
         self.halos = np.array([
-                 '0000',
-                 # '0001',
-                 '0002',
-                 #'0003','0005','0014','0015',
-                 # '0016',
-                 '0017',
-                 # '0018',
-                 '0019','0020',
-                 # '0021',
-                 '0022','0023','0024','0025',
+                 '0000','0001','0002','0003',
+                 '0005',#'0006',
+                 '0007',
+                 #'0014','0015',
+                 '0016','0017','0018','0019','0020',
+                 '0021','0022','0023','0024','0025',
                  '0026','0027','0028','0029','0030'])
         
         self.tags = np.array(['000_z015p000','001_z014p000','002_z013p000',
@@ -101,17 +97,17 @@ class flares:
     
     
     def plot_df(self, ax, phi, phi_sigma, hist, massBins, 
-                label, color, hist_lim=10, lw=3):
+                label, color, hist_lim=10, lw=3, alpha=0.7):
     
         mask = (hist >= hist_lim)
         ax.plot(np.log10(massBins[mask][phi[mask] > 0.]),
                 np.log10(phi[mask][phi[mask] > 0.]),
-                label=label, lw=lw, c=color, alpha=0.7)
+                label=label, lw=lw, c=color, alpha=alpha)
     
         i = np.where(hist >= hist_lim)[0][-1]
         ax.plot(np.log10(massBins[i:][phi[i:] > 0.]),
                 np.log10(phi[i:][phi[i:] > 0.]),
-                lw=lw, linestyle='dotted', c=color, alpha=0.7)
+                lw=lw, linestyle='dotted', c=color, alpha=alpha)
 
 
 
