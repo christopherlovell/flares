@@ -1,6 +1,7 @@
 import os
 import numpy as np
 from scipy.spatial.distance import cdist
+import h5py
 
 class flares:
 
@@ -122,5 +123,56 @@ class flares:
                               np.log10(phi[i:][phi[i:] > 0.] - phi_sigma[i:][phi[i:] > 0.])],
                 lw=lw, linestyle='dotted', c=color, alpha=alpha)
 
+
+
+    """
+    Utilities for loading and saving nested dictionaries recursively
+
+    see https://codereview.stackexchange.com/questions/120802/recursively-save-python-dictionaries-to-hdf5-files-using-h5py
+    """
+
+    def save_dict_to_hdf5(self, dic, filename, groupname='default', overwrite=False):
+        """
+        ....
+        """
+        if groupname=='default': print("Saving to `default` group")
+        with h5py.File(filename, 'a', driver='family') as h5file:
+            self.recursively_save_dict_contents_to_group(h5file, groupname+'/', dic, overwrite=overwrite)
+    
+    def recursively_save_dict_contents_to_group(self, h5file, path, dic, overwrite=False):
+        """
+        ....
+        """
+        for key, item in dic.items():
+            if isinstance(item, (np.ndarray, np.int64, np.float64, str, bytes, float)):
+                if overwrite:
+                    old_data = h5file[path + key]
+                    old_data[...] = item
+                else:
+                    h5file[path + key] = item
+            elif isinstance(item, dict):
+                self.recursively_save_dict_contents_to_group(h5file, path + key + '/', item, overwrite=overwrite)
+            else:
+                raise ValueError('Cannot save %s type'%type(item))
+    
+    def load_dict_from_hdf5(self, filename, group=''):
+        """
+        ....
+        """
+        with h5py.File(filename, 'r', driver='family') as h5file:
+            return self.recursively_load_dict_contents_from_group(h5file, group+'/')
+    
+    
+    def recursively_load_dict_contents_from_group(self, h5file, path):
+        """
+        ....
+        """
+        ans = {}
+        for key, item in h5file[path].items():
+            if isinstance(item, h5py._hl.dataset.Dataset):
+                ans[key] = item[()] # .value
+            elif isinstance(item, h5py._hl.group.Group):
+                ans[key] = self.recursively_load_dict_contents_from_group(h5file, path + key + '/')
+        return ans
 
 

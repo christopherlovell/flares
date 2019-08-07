@@ -4,7 +4,7 @@ import eagle as E
 import h5py
 import flares
 
-from h5py_utilities import check_h5py, write_data_h5py, create_group_h5py, save_dict_to_hdf5, load_dict_from_hdf5
+from h5py_utilities import check_h5py, write_data_h5py, create_group_h5py
 
 
 fl = flares.flares()
@@ -14,12 +14,12 @@ fname = 'data/flares_%d.h5'
 # if False: #check_h5py(fname,'radius'):
 #     r = load_dict_from_hdf5(fname,'radius')
 # else:
-with h5py.File('data/flares_%d.h5','a',driver='family') as f:
-    del f['radius']
+# with h5py.File('data/flares_%d.h5','a',driver='family') as f:
+#     del f['radius']
 
 
 r = {h: {t: 0. for t in fl.tags} for h in fl.halos}
-save_dict_to_hdf5(dic=r,filename=fname,groupname='radius')
+fl.save_dict_to_hdf5(dic=r,filename=fname,groupname='radius')
 
 
 create_group_h5py(fname,'masks')
@@ -45,7 +45,7 @@ for halo in fl.halos:
                                       3200/2,3200/2,3200/2, 
                                       threshold = 0.6, cut = 1.)
    
-        save_dict_to_hdf5(r,fname,'radius', overwrite=True)
+        fl.save_dict_to_hdf5(r,fname,'radius', overwrite=True)
         
         mask = fl.cutout(cop,centre,r[halo][rtag])
         
