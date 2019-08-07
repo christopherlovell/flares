@@ -28,6 +28,11 @@ class flares:
                                   '004_z008p075','005_z007p050','006_z005p971',
                                   '007_z005p487','008_z005p037','009_z004p485'])
 
+        self.data = "%s/data"%(os.path.dirname(os.path.realpath(__file__)))
+
+        ## update with weights file location
+        self.weights = '/cosma7/data/dp004/dc-love2/codes/ic_selection/weights.txt'
+
 
     def check_snap_exists(self,halo,snap):
         test_str = self.directory + 'geagle_' + halo + '/data/snapshot_' + snap 
@@ -100,13 +105,21 @@ class flares:
                 label, color, hist_lim=10, lw=3, alpha=0.7):
     
         mask = (hist >= hist_lim)
-        ax.plot(np.log10(massBins[mask][phi[mask] > 0.]),
+        ax.errorbar(np.log10(massBins[mask][phi[mask] > 0.]),
                 np.log10(phi[mask][phi[mask] > 0.]),
+                yerr=[np.log10(phi[mask][phi[mask] > 0.]+phi_sigma[mask][phi[mask] > 0.]) \
+                        - np.log10(massBins[mask][phi[mask] > 0.]),
+                      np.log10(massBins[mask][phi[mask] > 0.]) \
+                        - np.log10(phi[mask][phi[mask] > 0.]-phi_sigma[mask][phi[mask] > 0.])],
                 label=label, lw=lw, c=color, alpha=alpha)
     
         i = np.where(hist >= hist_lim)[0][-1]
-        ax.plot(np.log10(massBins[i:][phi[i:] > 0.]),
+        ax.errorbar(np.log10(massBins[i:][phi[i:] > 0.]),
                 np.log10(phi[i:][phi[i:] > 0.]),
+                yerr=[np.log10(phi[i:][phi[i:] > 0.] + phi_sigma[i:][phi[i:] > 0.]) - \
+                        np.log10(massBins[i:][phi[i:] > 0.]),
+                      np.log10(massBins[i:][phi[i:] > 0.]) - \
+                              np.log10(phi[i:][phi[i:] > 0.] - phi_sigma[i:][phi[i:] > 0.])],
                 lw=lw, linestyle='dotted', c=color, alpha=alpha)
 
 

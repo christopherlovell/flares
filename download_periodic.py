@@ -22,38 +22,38 @@ for tag in fl.ref_tags:
 
     ## Reference ##
     if check_h5py(fname, 'ref/mstar/%s'%tag) is False:
-        mstar = E.readArray("SUBFIND", fl.ref_directory, tag, "/Subhalo/Stars/Mass", 
+        mstar = E.read_array("SUBFIND", fl.ref_directory, tag, "/Subhalo/Stars/Mass", 
                             numThreads=1, noH=True)
         write_data_h5py(fname, 'ref/mstar', tag, data=mstar, overwrite=True)
 
 
     if check_h5py(fname, 'ref/sfr/%s'%tag) is False:
-        sfr = E.readArray("SUBFIND", fl.ref_directory, tag, "/Subhalo/StarFormationRate", 
+        sfr = E.read_array("SUBFIND", fl.ref_directory, tag, "/Subhalo/StarFormationRate", 
                           numThreads=1, noH=True)
         write_data_h5py(fname, 'ref/sfr', tag, data=sfr, overwrite=True)
 
 
     if check_h5py(fname, 'ref/centrals/%s'%tag) is False:
-        centrals = (E.readArray("SUBFIND", fl.ref_directory, tag, "/Subhalo/SubGroupNumber", 
+        centrals = (E.read_array("SUBFIND", fl.ref_directory, tag, "/Subhalo/SubGroupNumber", 
                                 numThreads=1, noH=True) == 0)
         write_data_h5py(fname, 'ref/centrals', tag, data=centrals, overwrite=True)
 
 
     ## AGNdT9 ## 
     if check_h5py(fname, 'agn/mstar/%s'%tag) is False:
-        mstar = E.readArray("SUBFIND", fl.agn_directory, tag, "/Subhalo/Stars/Mass", 
+        mstar = E.read_array("SUBFIND", fl.agn_directory, tag, "/Subhalo/Stars/Mass", 
                             numThreads=1, noH=True)
         write_data_h5py(fname, 'agn/mstar', tag, data=mstar, overwrite=True)
         
         
     if check_h5py(fname, 'agn/sfr/%s'%tag) is False:
-        sfr = E.readArray("SUBFIND", fl.agn_directory, tag, "/Subhalo/StarFormationRate", 
+        sfr = E.read_array("SUBFIND", fl.agn_directory, tag, "/Subhalo/StarFormationRate", 
                           numThreads=1, noH=True)
         write_data_h5py(fname, 'agn/sfr', tag, data=sfr, overwrite=True)
 
 
     if check_h5py(fname, 'agn/centrals/%s'%tag) is False:
-        centrals = (E.readArray("SUBFIND", fl.agn_directory, tag, "/Subhalo/SubGroupNumber", 
+        centrals = (E.read_array("SUBFIND", fl.agn_directory, tag, "/Subhalo/SubGroupNumber", 
                                 numThreads=1, noH=True) == 0)
         write_data_h5py(fname, 'agn/centrals', tag, data=centrals, overwrite=True)
 

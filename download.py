@@ -1,7 +1,8 @@
 import sys
 
 import numpy as np
-import eagle as E
+# import eagle as E
+import eagle_IO as E
 
 import flares
 from h5py_utilities import write_data_h5py, create_group_h5py, check_h5py
@@ -30,17 +31,17 @@ for halo in fl.halos:
 
 
         if check_h5py(fname, 'mstar/%s/%s'%(halo,tag)) is False:
-            mstar = E.readArray("SUBFIND", halodir, tag, "/Subhalo/Stars/Mass", 
+            mstar = E.read_array("SUBFIND", halodir, tag, "/Subhalo/Stars/Mass", 
                                 numThreads=1, noH=True)
             write_data_h5py(fname, 'mstar/%s'%halo, rtag, data=mstar, overwrite=True)
             
         if check_h5py(fname, 'sfr/%s/%s'%(halo,tag)) is False:
-            sfr = E.readArray("SUBFIND", halodir, tag, "/Subhalo/StarFormationRate", 
+            sfr = E.read_array("SUBFIND", halodir, tag, "/Subhalo/StarFormationRate", 
                               numThreads=1, noH=True)
             write_data_h5py(fname, 'sfr/%s'%halo, rtag, data=sfr, overwrite=True)
 
         if check_h5py(fname, 'centrals/%s/%s'%(halo,tag)) is False:
-            centrals = (E.readArray("SUBFIND", halodir, tag, "/Subhalo/SubGroupNumber", 
+            centrals = (E.read_array("SUBFIND", halodir, tag, "/Subhalo/SubGroupNumber", 
                                     numThreads=1, noH=True) == 0)
             write_data_h5py(fname, 'centrals/%s'%halo, rtag, data=centrals, overwrite=True)
             
