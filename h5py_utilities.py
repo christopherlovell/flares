@@ -1,3 +1,4 @@
+import numpy as np
 import h5py
 
 def load_h5py(filename, obj_str):
