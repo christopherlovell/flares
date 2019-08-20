@@ -9,3 +9,5 @@ You can then just run
 
 in any other scripts to get the flares class and associated functionality.
 
+### to-do
+- add examples
