@@ -2,12 +2,12 @@ import numpy as np
 import h5py
 
 def load_h5py(filename, obj_str):
-    with h5py.File(filename, 'a', driver='family') as h5file:
+    with h5py.File(filename, 'a') as h5file:
         dat = np.array(h5file.get(obj_str))
     return dat
 
 def check_h5py(filename, obj_str):
-    with h5py.File(filename, 'a', driver='family') as h5file:
+    with h5py.File(filename, 'a') as h5file:
         if obj_str not in h5file:
             return False
         else:
@@ -17,12 +17,18 @@ def write_data_h5py(filename, grp_str, name, data, overwrite=False):
     full_str = "%s/%s"%(grp_str,name)
     check = check_h5py(filename, full_str)
     
-    with h5py.File(filename, 'a', driver='family') as h5file:
+    with h5py.File(filename, 'a') as h5file:
         if check:
             if overwrite:
                 print('Overwriting data in %s'%full_str)
-                old_data = h5file[full_str]
-                old_data[...] = data
+                try:
+                    old_data = h5file[full_str]
+                    old_data[...] = data
+                except TypeError:
+                    print('Incompatible shape, deleting old data...')
+                    grp = h5file[grp_str]
+                    del grp[name]
+                    grp[name] = data
             else:
                 raise ValueError('Dataset already exists, and `overwrite` not set')
         else:
@@ -32,7 +38,7 @@ def write_data_h5py(filename, grp_str, name, data, overwrite=False):
 
 def create_group_h5py(filename, obj_str):
     check = check_h5py(filename, obj_str)
-    with h5py.File(filename, 'a', driver='family') as h5file:
+    with h5py.File(filename, 'a') as h5file:
         if check:
             print('Object already exists')
             return False

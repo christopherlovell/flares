@@ -12,7 +12,10 @@ class flares:
                  '0005',#'0006',
                  '0007','0012','0014',#'0015',
                  '0016','0017','0018','0019','0020',
-                 '0021','0022','0023','0024','0025',
+                 #'0021',
+                 '0022',
+                 #'0023',
+                 '0024','0025',
                  '0026','0027','0028','0029','0030'])
         
         self.tags = np.array(['000_z015p000','001_z014p000','002_z013p000',
@@ -135,7 +138,7 @@ class flares:
         ....
         """
         if groupname=='default': print("Saving to `default` group")
-        with h5py.File(filename, 'a', driver='family') as h5file:
+        with h5py.File(filename, 'a') as h5file:
             self.recursively_save_dict_contents_to_group(h5file, groupname+'/', dic, overwrite=overwrite)
     
     def recursively_save_dict_contents_to_group(self, h5file, path, dic, overwrite=False):
@@ -158,7 +161,7 @@ class flares:
         """
         ....
         """
-        with h5py.File(filename, 'r', driver='family') as h5file:
+        with h5py.File(filename, 'r') as h5file:
             return self.recursively_load_dict_contents_from_group(h5file, group+'/')
     
     
