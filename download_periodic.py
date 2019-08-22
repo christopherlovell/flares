@@ -1,13 +1,14 @@
 import sys
 
 import numpy as np
-import eagle as E
+# import eagle as E
+from eagle_IO import eagle_IO as E
 
 import flares
 from h5py_utilities import write_data_h5py, create_group_h5py, check_h5py
 
 fl = flares.flares()
-fname = 'data/periodic_%d.h5'
+fname = 'data/periodic.h5'
 
 
 for box in ['ref','agn']:

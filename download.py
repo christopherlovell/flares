@@ -8,7 +8,7 @@ from h5py_utilities import write_data_h5py, create_group_h5py, check_h5py
 overwrite = False
 
 fl = flares.flares()
-fname = 'data/flares_%d.h5'
+fname = 'data/flares.h5'
 
 create_group_h5py(fname, 'mstar')
 create_group_h5py(fname, 'sfr')
@@ -21,10 +21,6 @@ for halo in fl.halos:
     create_group_h5py(fname, 'mstar/%s'%halo)
     create_group_h5py(fname, 'sfr/%s'%halo)
     create_group_h5py(fname, 'centrals/%s'%halo)
-
-    if halo in ['0014']: overwrite = True
-    else: overwrite = False
-
 
     for tag in fl.tags:
 
