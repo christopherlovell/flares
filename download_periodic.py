@@ -1,7 +1,9 @@
-import sys
+"""
+Download data from periodic box simulations
+"""
 
+import sys
 import numpy as np
-# import eagle as E
 from eagle_IO import eagle_IO as E
 
 import flares
@@ -58,19 +60,4 @@ for tag in fl.ref_tags:
                                 numThreads=1, noH=True) == 0)
         write_data_h5py(fname, 'agn/centrals', tag, data=centrals, overwrite=True)
 
-
-
-
-
-
-    # coods[halo][tag] = E.readArray("SUBFIND", halodir, tag, "/Subhalo/CentreOfPotential", numThreads=1, noH=True, physicalUnits=False)
-    # bhmass[halo][tag] = E.readArray("SUBFIND", halodir, tag, "/Subhalo/BlackHoleMass", numThreads=1, noH=True)
-    # tmass[halo][tag] = E.readArray("SUBFIND", halodir, tag, "/Subhalo/Mass", numThreads=1, noH=True)
-    # Zstars[halo][tag] = E.readArray("SUBFIND", halodir, tag, "/Subhalo/Stars/Metallicity", numThreads=1, noH=True)
-    # ZgasSF[halo][tag] = E.readArray("SUBFIND", halodir, tag, "/Subhalo/SF/Metallicity", numThreads=1, noH=True)
-    # grpn = E.readArray("SUBFIND", halodir, tag, "/Subhalo/GroupNumber", numThreads=1)
-    # m200[halo][tag] = E.readArray("SUBFIND_GROUP", halodir, tag, "/FOF/Group_M_Mean200", numThreads=1, noH=True)[grpn - 1]
-#     bhaccr[halo][tag] = E.readArray("SUBFIND", halodir, tag, "/Subhalo/BlackHoleMassAccretionRate", numThreads=1, noH=True)
-
-#     ZgasNSF[halo][tag] = E.readArray("SUBFIND", halodir, tag, "/Subhalo/NSF/Metallicity", numThreads=1, noH=True)
 
