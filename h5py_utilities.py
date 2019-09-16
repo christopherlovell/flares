@@ -21,14 +21,9 @@ def write_data_h5py(filename, grp_str, name, data, overwrite=False):
         if check:
             if overwrite:
                 print('Overwriting data in %s'%full_str)
-                try:
-                    old_data = h5file[full_str]
-                    old_data[...] = data
-                except TypeError:
-                    print('Incompatible shape, deleting old data...')
-                    grp = h5file[grp_str]
-                    del grp[name]
-                    grp[name] = data
+                grp = h5file[grp_str]
+                del grp[name]
+                grp[name] = data
             else:
                 raise ValueError('Dataset already exists, and `overwrite` not set')
         else:
