@@ -45,5 +45,5 @@ mstar = fl.load_dict_from_hdf5(fname, 'mstar')
 halo = fl.halos[0]
 tag = fl.tags[0]
 
-print(mstar[halo][tag][:10])
+print (mstar[halo][tag][:10])
 ```
