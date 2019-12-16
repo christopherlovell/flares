@@ -19,8 +19,16 @@ class flares:
 
     def __init__(self):
 
-        self.halos = np.arange(38)
-
+        self.halos = np.array([
+                 '000','001','002','003','004',
+                 '005','006','007','008','009',
+                 '010','011','012','013','014',
+                 '015','016','017','018','019',
+                 '020','021','022','023','024',
+                 '025','026','027','028','029',
+                 '030','031','032','033','034',
+                 '035','036','037','038','039'])
+        
         self.tags = np.array(['000_z015p000','001_z014p000','002_z013p000',
                               '003_z012p000','004_z011p000','005_z010p000',
                               '006_z009p000','007_z008p000','008_z007p000',
@@ -39,8 +47,8 @@ class flares:
 
         self.data = "%s/data"%(os.path.dirname(os.path.realpath(__file__)))
 
-        ## update with weights file name
-        self.weights = './weights.txt'
+        ## update with weights file location
+        self.weights = '/cosma7/data/dp004/dc-love2/codes/ic_selection/weights_grid.txt'
 
 
     def check_snap_exists(self,halo,snap):
@@ -77,33 +85,102 @@ class flares:
         hist, dummy = np.histogram(np.log10(mstar), bins = massBinLimits)
         hist = np.float64(hist)
         phi = (hist / volume) / (massBinLimits[1] - massBinLimits[0])
+        # phi_sigma = poisson_confidence_intervals(hist,0.68) / volume) /\
+        #             (massBinLimits[1] - massBinLimits[0])
         phi_sigma = (np.sqrt(hist) / volume) /\
                     (massBinLimits[1] - massBinLimits[0]) # Poisson errors
 
         return phi, phi_sigma, hist
+    
+    
+    def plot_df(self, ax, phi, phi_sigma, hist, massBins, 
+                label, color, hist_lim=10, lw=3, alpha=0.7, lines=True):
+   
+        kwargs = {} 
+        kwargs_lo = {} 
+
+        if lines:
+            kwargs['lw']=lw
+
+            kwargs_lo['lw']=lw
+            kwargs_lo['linestyle']='dotted'
+        else:
+            kwargs['ls']=''
+            kwargs['marker']='o'
+
+            kwargs_lo['ls']=''
+            kwargs_lo['marker']='o'
+            kwargs_lo['markerfacecolor']='white'
+            kwargs_lo['markeredgecolor']=color
+
+        
+        def yerr(phi,phi_sigma):
+
+            p = phi
+            ps = phi_sigma
+            
+            mask = (ps <= p)
+
+            err_up = np.abs(np.log10(p) - np.log10(p + ps))
+            err_lo = np.abs(np.log10(p) - np.log10(p - ps))
+
+            return err_up, err_lo, mask
+
+        
+        err_up, err_lo, mask = yerr(phi,phi_sigma)
+
+        err_lo[~mask] = 0.5
+        err_up[~mask] = 0.5
+        # # set phi to upper limit where no lower limit
+        # # phi[~mask] = 10**(np.log10(phi[~mask]) + err_up[~mask])
+
+        ax.errorbar(np.log10(massBins[phi > 0.]),
+                np.log10(phi[phi > 0.]),
+                yerr=[err_up[phi > 0.],
+                      err_lo[phi > 0.]],
+                uplims=(~mask[phi > 0.]),
+                label=label, c=color, alpha=alpha, **kwargs)
 
 
-    def plot_df(self, ax, phi, phi_sigma, hist, massBins,
-                label, color, hist_lim=10, lw=3, alpha=0.7):
+    @staticmethod
+    def poisson_confidence_interval(n,p):
+        """
+        http://ms.mcmaster.ca/peter/s743/poissonalpha.html
+            
+        e.g. p=0.68 for 1 sigma
+        
+        agrees with http://hyperphysics.phy-astr.gsu.edu/hbase/math/poifcn.html
+          
+        see comments on JavaStat page
+        
+         scipy.stats.chi2.ppf((1.-p)/2.,2*n)/2. also known
+        """
+        
+        if ~hasattr(n, "__iter__"): # check it's an array
+            n = np.array(n)
 
-        mask = (hist >= hist_lim)
-        ax.errorbar(np.log10(massBins[mask][phi[mask] > 0.]),
-                np.log10(phi[mask][phi[mask] > 0.]),
-                yerr=[np.log10(phi[mask][phi[mask] > 0.]+phi_sigma[mask][phi[mask] > 0.]) \
-                        - np.log10(massBins[mask][phi[mask] > 0.]),
-                      np.log10(massBins[mask][phi[mask] > 0.]) \
-                        - np.log10(phi[mask][phi[mask] > 0.]-phi_sigma[mask][phi[mask] > 0.])],
-                label=label, lw=lw, c=color, alpha=alpha)
+        interval = np.zeros((len(n),2))
+        mask = n > 0.
 
-        i = np.where(hist >= hist_lim)[0][-1]
-        ax.errorbar(np.log10(massBins[i:][phi[i:] > 0.]),
-                np.log10(phi[i:][phi[i:] > 0.]),
-                yerr=[np.log10(phi[i:][phi[i:] > 0.] + phi_sigma[i:][phi[i:] > 0.]) - \
-                        np.log10(massBins[i:][phi[i:] > 0.]),
-                      np.log10(massBins[i:][phi[i:] > 0.]) - \
-                              np.log10(phi[i:][phi[i:] > 0.] - phi_sigma[i:][phi[i:] > 0.])],
-                lw=lw, linestyle='dotted', c=color, alpha=alpha)
-
+        interval[mask,0]=scipy.stats.chi2.ppf((1.-p)/2.,2*n[mask])/2.
+        interval[mask,1]=scipy.stats.chi2.ppf(p+(1.-p)/2.,2*(n[mask]+1))/2.
+            
+        # work out the case for n=0
+        ul=(1.-p)/2.
+        
+        prev=1.0
+        for a in np.arange(0.,5.0,0.001):
+        
+            cdf=scipy.stats.poisson.cdf(0.,a)
+        
+            if cdf<ul and prev>ul:
+                i=a
+        
+            prev=cdf
+        
+        interval[~mask]=[0.,i]
+        
+        return np.array(interval)
 
 
     """
