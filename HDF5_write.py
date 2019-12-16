@@ -58,30 +58,30 @@ class HDF5_write(object):
                 shape=shape,
                 maxshape=(None, ) + shape[1:],
                 dtype=dtype,
-                #compression=self.compression,
+                compression=self.compression,
                 data=values)
 
                 dset.attrs['Description'] = desc
                 dset.attrs['Units'] = unit
 
             else:
-                #try:
-                dset = h5f[group].create_dataset(
-                dataset,
-                shape=shape,
-                maxshape=(None,) + shape[1:],
-                dtype=dtype,
-                #compression=self.compression,
-                data=values)
+                try:
+                    dset = h5f[group].create_dataset(
+                    dataset,
+                    shape=shape,
+                    maxshape=(None,) + shape[1:],
+                    dtype=dtype,
+                    compression=self.compression,
+                    data=values)
 
-                dset.attrs['Description'] = desc
-                dset.attrs['Units'] = unit
+                    dset.attrs['Description'] = desc
+                    dset.attrs['Units'] = unit
 
-                # except:
-                #     print("Oh! Oh! something went wrong while creating {}/{} or it already exists.\nNo value was written into the dataset.".format(group, dataset))
-                #     sys.exit
+                except Exception as e:
+                    print("Oh! Oh! something went wrong while creating {}/{} or it already exists.\nNo value was written into the dataset.".format(group, dataset))
+                    print (e)
+                    sys.exit
 
-        #self.append(values, dataset, group)
 
     def append(self, values, dataset, group = 'None'):
         with h5py.File(self.datapath, mode='a') as h5f:
