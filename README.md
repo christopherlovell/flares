@@ -1,4 +1,4 @@
-# First Light And REionisation Simulations (FLARES)
+# First Light And Reionisation Epoch Simulations (FLARES)
 
 A python convenience module for working with FLARES resimulation data.
 
