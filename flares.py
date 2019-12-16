@@ -1,10 +1,17 @@
 import os
 import numpy as np
+from astropy.cosmology import Planck13 as cosmo
+from astropy import units as u
 from scipy.optimize import curve_fit
 from scipy.spatial import ConvexHull
 import h5py
+import schwimmbad
+from functools import partial
 import eagle_IO.eagle_IO as E
 from numba import jit, njit
+
+norm = np.linalg.norm
+conv = (u.solMass/u.Mpc**2).to(u.solMass/u.pc**2)
 
 @jit
 def sphere(coords, a, b, c, r):
@@ -28,7 +35,7 @@ class flares:
                  '025','026','027','028','029',
                  '030','031','032','033','034',
                  '035','036','037','038','039'])
-        
+
         self.tags = np.array(['000_z015p000','001_z014p000','002_z013p000',
                               '003_z012p000','004_z011p000','005_z010p000',
                               '006_z009p000','007_z008p000','008_z007p000',
@@ -63,8 +70,7 @@ class flares:
         Inspired from David Turner's suggestion
         """
 
-        sim = self.directory + halo + '/data/'
-        dm_cood = E.read_array('PARTDATA', sim, snap, '/PartType1/Coordinates',
+        dm_cood = E.read_array('PARTDATA', halo, snap, '/PartType1/Coordinates',
         noH=False, physicalUnits=False, numThreads=4)  #dm particle coordinates
 
         hull = ConvexHull(dm_cood)
@@ -91,13 +97,13 @@ class flares:
                     (massBinLimits[1] - massBinLimits[0]) # Poisson errors
 
         return phi, phi_sigma, hist
-    
-    
-    def plot_df(self, ax, phi, phi_sigma, hist, massBins, 
+
+
+    def plot_df(self, ax, phi, phi_sigma, hist, massBins,
                 label, color, hist_lim=10, lw=3, alpha=0.7, lines=True):
-   
-        kwargs = {} 
-        kwargs_lo = {} 
+
+        kwargs = {}
+        kwargs_lo = {}
 
         if lines:
             kwargs['lw']=lw
@@ -113,12 +119,12 @@ class flares:
             kwargs_lo['markerfacecolor']='white'
             kwargs_lo['markeredgecolor']=color
 
-        
+
         def yerr(phi,phi_sigma):
 
             p = phi
             ps = phi_sigma
-            
+
             mask = (ps <= p)
 
             err_up = np.abs(np.log10(p) - np.log10(p + ps))
@@ -126,7 +132,7 @@ class flares:
 
             return err_up, err_lo, mask
 
-        
+
         err_up, err_lo, mask = yerr(phi,phi_sigma)
 
         err_lo[~mask] = 0.5
@@ -146,16 +152,16 @@ class flares:
     def poisson_confidence_interval(n,p):
         """
         http://ms.mcmaster.ca/peter/s743/poissonalpha.html
-            
+
         e.g. p=0.68 for 1 sigma
-        
+
         agrees with http://hyperphysics.phy-astr.gsu.edu/hbase/math/poifcn.html
-          
+
         see comments on JavaStat page
-        
+
          scipy.stats.chi2.ppf((1.-p)/2.,2*n)/2. also known
         """
-        
+
         if ~hasattr(n, "__iter__"): # check it's an array
             n = np.array(n)
 
@@ -164,22 +170,22 @@ class flares:
 
         interval[mask,0]=scipy.stats.chi2.ppf((1.-p)/2.,2*n[mask])/2.
         interval[mask,1]=scipy.stats.chi2.ppf(p+(1.-p)/2.,2*(n[mask]+1))/2.
-            
+
         # work out the case for n=0
         ul=(1.-p)/2.
-        
+
         prev=1.0
         for a in np.arange(0.,5.0,0.001):
-        
+
             cdf=scipy.stats.poisson.cdf(0.,a)
-        
+
             if cdf<ul and prev>ul:
                 i=a
-        
+
             prev=cdf
-        
+
         interval[~mask]=[0.,i]
-        
+
         return np.array(interval)
 
 
@@ -255,7 +261,7 @@ def get_age(arr, z, numThreads = 4):
     return Age
 
 
-@njit()
+@jit()
 def get_Z_LOS(s_cood, g_cood, g_mass, g_Z, g_sml, lkernel, kbins):
 
     """
