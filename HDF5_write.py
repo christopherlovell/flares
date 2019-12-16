@@ -105,6 +105,19 @@ class HDF5_write(object):
             dset.close()
 
 
+
+def create_group_h5py(filename, obj_str):
+    check = check_h5py(filename, obj_str)
+    with h5py.File(filename, 'a') as h5file:
+        if check:
+            print('Object already exists')
+            return False
+        else:
+            h5file.create_group(obj_str)
+
+
+
+
 if __name__== "__main__":
 
     shape = (10,)
