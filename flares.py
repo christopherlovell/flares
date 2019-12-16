@@ -3,7 +3,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 from scipy.spatial import ConvexHull
 import h5py
-import eagle_IO as E
+import eagle_IO.eagle_IO as E
 from numba import jit, njit
 
 @jit

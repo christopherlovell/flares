@@ -9,7 +9,7 @@ tag = str(tag)
 if len(num) == 1:
     num =  '0'+num
 
-from mpi_save_to_hdf5 import save_to_hdf5
+from save_as_hdf5 import save_to_hdf5
 
 # save_to_hdf5(num, '010_z005p000', inp='GEAGLE')
 # save_to_hdf5(num, '009_z006p000', inp='GEAGLE')
