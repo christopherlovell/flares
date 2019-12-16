@@ -1,29 +1,43 @@
 import os
 import numpy as np
-from scipy.spatial.distance import cdist
-import scipy.stats
+from scipy.optimize import curve_fit
+from scipy.spatial import ConvexHull
 import h5py
+import eagle_IO as E
+from numba import jit, njit
+
+@jit
+def sphere(coords, a, b, c, r):
+
+    #Equation of a sphere
+
+    x, y, z = coords[:,0], coords[:,1], coords[:,2]
+
+    return (x-a)**2 + (y-b)**2 + (z-c)**2 - r**2
 
 class flares:
 
     def __init__(self):
 
         self.halos = np.array([
-                 '0000','0001','0002','0003','0004',
-                 '0005','0006','0007','0008','0009',
-                 '0010','0011','0012','0013','0014',
-                 '0015','0016','0017','0018','0019',
-                 '0020','0021','0022','0023','0024',
-                 '0025','0026','0027','0028','0029',
-                 '0030','0031','0032','0033','0034',
-                 '0035','0036','0037','0038','0039'])
+                 '000','001','002','003','004',
+                 '005','006','007','008','009',
+                 '010','011','012','013','014',
+                 '015','016','017','018','019',
+                 '020','021','022','023','024',
+                 '025','026','027','028','029',
+                 '030','031','032','033','034',
+                 '035','036','037','038','039'])
         
         self.tags = np.array(['000_z015p000','001_z014p000','002_z013p000',
                               '003_z012p000','004_z011p000','005_z010p000',
                               '006_z009p000','007_z008p000','008_z007p000',
                               '009_z006p000','010_z005p000','011_z004p770'])
-        
-        self.directory = '/cosma7/data/dp004/dc-love2/data/G-EAGLE/'
+
+        self.radius = 14. #in cMpc/h
+
+        #Put down the sim root location here
+        self.directory = '/cosma7/data/dp004/dc-payy1/G-EAGLE/GEAGLE_'
         self.ref_directory = '/cosma5/data/Eagle/ScienceRuns/Planck1/L0100N1504/PE/REFERENCE/data'
         self.agn_directory = '/cosma5/data/Eagle/ScienceRuns/Planck1/L0050N0752/PE/S15_AGNdT9/data'
 
@@ -38,60 +52,33 @@ class flares:
 
 
     def check_snap_exists(self,halo,snap):
-        test_str = self.directory + 'geagle_' + halo + '/data/snapshot_' + snap 
+
+        test_str = self.directory + halo + '/data/snapshot_' + snap
         return os.path.isdir(test_str)
-        
 
-    def cutout(self, c0, c1, radius):
-        
-        if type(c0) is not np.ndarray:
-            c0 = np.asarray(c0)
-        
-        if type(c1) is not np.ndarray:
-            c1 = np.asarray(c1)
 
-        if len(c0.shape) < 2:
-            c0 = np.expand_dims(c0,axis=0)
+    def spherical_region(self, halo, snap):
 
-        if len(c1.shape) < 2:
-            c1 = np.expand_dims(c1,axis=0)
+        """
+        Inspired from David Turner's suggestion
+        """
 
-        return cdist(c0,c1).flatten() < radius
+        sim = self.directory + halo + '/data/'
+        dm_cood = E.read_array('PARTDATA', sim, snap, '/PartType1/Coordinates',
+        noH=False, physicalUnits=False, numThreads=4)  #dm particle coordinates
 
-    
-    def cut_radius(self, x, y, z, x0, y0, z0, threshold = 0.1, cut = 2):
-        # Calculates the maximum cut out radius that leaves a 
-        # sufficient gap to the edge of the high resolution region.
-        # Tests that the region is close to spherical, otherwise a 
-        # more sophisticated cut out must be constructed.
-        #
-        # Args:
-        # - x, y, z: coordinate vectors
-        # - x0, y0, z0: centre of simulation / high resolution region
-        # - threshold: threshold ratio of extent in both directions, tested along each axis
-        # - cut: how far in to cut out, cMpc (h less)
-        #
-        # Returns:
-        # - minimum distance to edge minus cut boundary
-        # - if threshold exceeded, returns False
-    
-        xmax = max(x) - x0
-        ymax = max(y) - y0
-        zmax = max(z) - z0
-    
-        xmin = x0 - min(x)
-        ymin = y0 - min(y)
-        zmin = z0 - min(z)
-    
-        if ((abs(xmax / xmin -1) > threshold) or (abs(ymax / ymin -1) > threshold) or (abs(zmax / zmin -1) > threshold)):
-            print("Error! High resolution region highly non-spherical.")
-            print('xmax: ', xmax, ', xmin: ', xmin)
-            print('ymax: ', ymax, ', xmin: ', ymin)
-            print('zmax: ', zmax, ', xmin: ', zmin)
-            return False
-    
-        return(min(xmax,ymax,zmax,xmin,ymin,zmin) - cut)
- 
+        hull = ConvexHull(dm_cood)
+
+        cen = [np.median(dm_cood[:,0]), np.median(dm_cood[:,1]), np.median(dm_cood[:,2])]
+        pedge = dm_cood[hull.vertices]  #edge particles
+        y_obs = np.zeros(len(pedge))
+        p0 = np.append(cen, self.radius)
+
+        popt, pcov = curve_fit(sphere, pedge, y_obs, p0, method = 'lm', sigma = np.ones(len(pedge))*0.001)
+        dist = np.sqrt(np.sum((pedge-popt[:3])**2, axis = 1))
+        centre, radius, mindist = popt[:3], popt[3], np.min(dist)
+
+        return centre, radius, mindist
 
     def calc_df(self, mstar, tag, volume, massBinLimits):
 
@@ -196,7 +183,6 @@ class flares:
         return np.array(interval)
 
 
-
     """
     Utilities for loading and saving nested dictionaries recursively
 
@@ -210,7 +196,7 @@ class flares:
         if groupname=='default': print("Saving to `default` group")
         with h5py.File(filename, 'a') as h5file:
             self.recursively_save_dict_contents_to_group(h5file, groupname+'/', dic, overwrite=overwrite)
-    
+
     def recursively_save_dict_contents_to_group(self, h5file, path, dic, overwrite=False):
         """
         ....
@@ -226,15 +212,15 @@ class flares:
                 self.recursively_save_dict_contents_to_group(h5file, path + key + '/', item, overwrite=overwrite)
             else:
                 raise ValueError('Cannot save %s type'%type(item))
-    
+
     def load_dict_from_hdf5(self, filename, group=''):
         """
         ....
         """
         with h5py.File(filename, 'r') as h5file:
             return self.recursively_load_dict_contents_from_group(h5file, group+'/')
-    
-    
+
+
     def recursively_load_dict_contents_from_group(self, h5file, path):
         """
         ....
@@ -248,3 +234,67 @@ class flares:
         return ans
 
 
+def get_SFT(SFT, redshift):
+
+    SFz = (1/SFT) - 1.
+    SFz = cosmo.age(redshift).value - cosmo.age(SFz).value
+    return SFz
+
+def get_age(arr, z, numThreads = 4):
+
+    if numThreads == 1:
+        pool = schwimmbad.SerialPool()
+    elif numThreads == -1:
+        pool = schwimmbad.MultiPool()
+    else:
+        pool = schwimmbad.MultiPool(processes=numThreads)
+
+    calc = partial(get_SFT, redshift = z)
+    Age = np.array(list(pool.map(calc,arr)))
+
+    return Age
+
+
+@njit()
+def get_Z_LOS(s_cood, g_cood, g_mass, g_Z, g_sml, lkernel, kbins):
+
+    """
+
+    Compute the los metal surface density (in g/cm^2) for star particles inside the galaxy taking
+    the z-axis as the los.
+    Args:
+        s_cood (3d array): stellar particle coordinates
+        g_cood (3d array): gas particle coordinates
+        g_mass (1d array): gas particle mass
+        g_Z (1d array): gas particle metallicity
+        g_sml (1d array): gas particle smoothing length
+
+    """
+    n = len(s_cood)
+    Z_los_SD = np.zeros(n)
+    #Fixing the observer direction as z-axis. Use make_faceon() for changing the
+    #particle orientation to face-on
+    xdir, ydir, zdir = 0, 1, 2
+    for ii in range(n):
+
+        thisspos = s_cood[ii]
+        ok = (g_cood[:,zdir] > thisspos[zdir])
+        thisgpos = g_cood[ok]
+        thisgsml = g_sml[ok]
+        thisgZ = g_Z[ok]
+        thisgmass = g_mass[ok]
+        x = thisgpos[:,xdir] - thisspos[xdir]
+        y = thisgpos[:,ydir] - thisspos[ydir]
+
+        b = np.sqrt(x*x + y*y)
+        boverh = b/thisgsml
+
+        ok = (boverh <= 1.)
+
+        kernel_vals = np.array([lkernel[int(kbins*ll)] for ll in boverh[ok]])
+
+        Z_los_SD[ii] = np.sum((thisgmass[ok]*thisgZ[ok]/(thisgsml[ok]*thisgsml[ok]))*kernel_vals) #in units of Msun/Mpc^2
+
+    Z_los_SD*=conv #in units of Msun/pc^2
+
+    return Z_los_SD
