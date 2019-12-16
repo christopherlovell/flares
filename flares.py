@@ -1,10 +1,17 @@
 import os
 import numpy as np
+from astropy.cosmology import Planck13 as cosmo
+from astropy import units as u
 from scipy.optimize import curve_fit
 from scipy.spatial import ConvexHull
 import h5py
+import schwimmbad
+from functools import partial
 import eagle_IO.eagle_IO as E
 from numba import jit, njit
+
+norm = np.linalg.norm
+conv = (u.solMass/u.Mpc**2).to(u.solMass/u.pc**2)
 
 @jit
 def sphere(coords, a, b, c, r):
@@ -254,7 +261,7 @@ def get_age(arr, z, numThreads = 4):
     return Age
 
 
-@njit()
+@jit()
 def get_Z_LOS(s_cood, g_cood, g_mass, g_Z, g_sml, lkernel, kbins):
 
     """
