@@ -64,13 +64,13 @@ class flares:
         return os.path.isdir(test_str)
 
 
-    def spherical_region(self, halo, snap):
+    def spherical_region(self, sim, snap):
 
         """
         Inspired from David Turner's suggestion
         """
 
-        dm_cood = E.read_array('PARTDATA', halo, snap, '/PartType1/Coordinates',
+        dm_cood = E.read_array('PARTDATA', sim, snap, '/PartType1/Coordinates',
         noH=False, physicalUnits=False, numThreads=4)  #dm particle coordinates
 
         hull = ConvexHull(dm_cood)
@@ -253,7 +253,7 @@ class flares:
             if obj_str not in h5file:
                 return False
             else:
-                return True 
+                return True
 
 
 def get_SFT(SFT, redshift):
