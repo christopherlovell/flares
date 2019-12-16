@@ -239,6 +239,22 @@ class flares:
                 ans[key] = self.recursively_load_dict_contents_from_group(h5file, path + key + '/')
         return ans
 
+    def create_group_h5py(self, filename, obj_str):
+        check = self.check_h5py(filename, obj_str)
+        with h5py.File(filename, 'a') as h5file:
+            if check:
+                print('Object already exists')
+                return False
+            else:
+                h5file.create_group(obj_str)
+
+    def check_h5py(self, filename, obj_str):
+        with h5py.File(filename, 'a') as h5file:
+            if obj_str not in h5file:
+                return False
+            else:
+                return True 
+
 
 def get_SFT(SFT, redshift):
 
