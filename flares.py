@@ -27,24 +27,27 @@ class flares:
     def __init__(self):
 
         self.halos = np.array([
-                 '000','001','002','003','004',
-                 '005','006','007','008','009',
-                 '010','011','012','013','014',
-                 '015','016','017','018','019',
-                 '020','021','022','023','024',
-                 '025','026','027','028','029',
-                 '030','031','032','033','034',
-                 '035','036','037','038','039'])
+                 '00','01','02','03','04',
+                 '05','06','07','08','09',
+                 '10','11','12','13','14',
+                 '15','16','17','18','19',
+                 '20','21','22','23','24',
+                 '25','26','27','28','29',
+                 '30','31','32','33','34',
+                 '35','36','37','38','39'])
 
         self.tags = np.array(['000_z015p000','001_z014p000','002_z013p000',
                               '003_z012p000','004_z011p000','005_z010p000',
                               '006_z009p000','007_z008p000','008_z007p000',
-                              '009_z006p000','010_z005p000','011_z004p770'])
+                              '009_z006p000','010_z005p000'
+                              #,'011_z004p770'
+                              ])
 
         self.radius = 14. #in cMpc/h
 
         #Put down the sim root location here
-        self.directory = '/cosma7/data/dp004/dc-payy1/G-EAGLE/GEAGLE_'
+        #self.directory = '/cosma7/data/dp004/dc-payy1/G-EAGLE/GEAGLE_'
+        self.directory = '/cosma7/data/dp004/dc-payy1/G-EAGLE/'
         self.ref_directory = '/cosma5/data/Eagle/ScienceRuns/Planck1/L0100N1504/PE/REFERENCE/data'
         self.agn_directory = '/cosma5/data/Eagle/ScienceRuns/Planck1/L0050N0752/PE/S15_AGNdT9/data'
 
@@ -203,6 +206,7 @@ class flares:
         with h5py.File(filename, 'a') as h5file:
             self.recursively_save_dict_contents_to_group(h5file, groupname+'/', dic, overwrite=overwrite)
 
+
     def recursively_save_dict_contents_to_group(self, h5file, path, dic, overwrite=False):
         """
         ....
@@ -218,6 +222,7 @@ class flares:
                 self.recursively_save_dict_contents_to_group(h5file, path + key + '/', item, overwrite=overwrite)
             else:
                 raise ValueError('Cannot save %s type'%type(item))
+
 
     def load_dict_from_hdf5(self, filename, group=''):
         """
@@ -239,6 +244,7 @@ class flares:
                 ans[key] = self.recursively_load_dict_contents_from_group(h5file, path + key + '/')
         return ans
 
+
     def create_group_h5py(self, filename, obj_str):
         check = self.check_h5py(filename, obj_str)
         with h5py.File(filename, 'a') as h5file:
@@ -248,12 +254,32 @@ class flares:
             else:
                 h5file.create_group(obj_str)
 
+
     def check_h5py(self, filename, obj_str):
         with h5py.File(filename, 'a') as h5file:
             if obj_str not in h5file:
                 return False
             else:
-                return True 
+                return True
+
+
+    def write_data_h5py(self, filename, grp_str, name, data, overwrite=False):
+        full_str = "%s/%s"%(grp_str,name)
+        check = self.check_h5py(filename, full_str)
+        
+        with h5py.File(filename, 'a') as h5file:
+            if check:
+                if overwrite:
+                    print('Overwriting data in %s'%full_str)
+                    grp = h5file[grp_str]
+                    del grp[name]
+                    grp[name] = data
+                else:
+                    raise ValueError('Dataset already exists, and `overwrite` not set')
+            else:
+                grp = h5file[grp_str]
+                grp.create_dataset(name, data=data)
+
 
 
 def get_SFT(SFT, redshift):
