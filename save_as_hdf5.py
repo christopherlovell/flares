@@ -57,9 +57,7 @@ def make_faceon(cop, this_g_cood, this_g_mass, this_g_vel):
     return new
 
 
-
-def extract_info(num, tag, kernel='sph-anarchy', inp='GEAGLE'):
-
+def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     """
 
     Args:
@@ -69,14 +67,14 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='GEAGLE'):
     Selects only galaxies with more than 100 star+gas particles inside 30pkpc
 
     """
-    fl = flares.flares()
+    fl = flares.flares(fname = './data/',sim_type=inp)
     ## MPI parameters
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
     #print ("rank={}, size={}".format(rank, size))
     print (F"Extracing information from {inp} {num} {tag}")
-    if inp == 'GEAGLE':
+    if inp == 'FLARES':
 
         num = str(num)
         if len(num) == 1:
@@ -266,7 +264,7 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='GEAGLE'):
     ts_sml = ts_sml[:tstot]
     tg_sml = tg_sml[:tgtot]
 
-    tsage = flares.get_age(tsage[:tstot], z, 4)
+    tsage = fl.get_age(tsage[:tstot], z, 4)
     tZ_los = tZ_los[:tstot]
 
     comm.Barrier()
@@ -319,10 +317,10 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='GEAGLE'):
 
 ##End of function `extract_info`
 
-def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='GEAGLE'):
+def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
 
     num = str(num)
-    if inp == 'GEAGLE':
+    if inp == 'FLARES':
         if len(num) == 1:
             num =  '0'+num
         filename = 'data/GEAGLE_{}_sp_info.hdf5'.format(num)
@@ -401,3 +399,20 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='GEAGLE'):
         desc = 'Star particle age', unit = 'Gyr')
         hdf5_store.create_dset(Z_los, 'S_los', '{}/Particle'.format(tag),
         desc = 'Star particle line-of-sight metal column density along the z-axis', unit = 'Msun/pc^2')
+
+
+if __name__ == "__main__":
+
+    ii, tag, inp = sys.argv[1], sys.argv[2], sys.argv[3]
+    print (ii, tag, inp)
+
+    num = str(ii)
+    tag = str(tag)
+    inp = str(inp)
+
+    if len(num) == 1:
+        num =  '0'+num
+
+    from save_as_hdf5 import save_to_hdf5
+
+    save_to_hdf5(num, tag, inp=inp)
