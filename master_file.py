@@ -1,21 +1,18 @@
 import h5py
 import flares
-from HDF5_write import HDF5_write
 
+fl = flares.flares('data/flares.hdf5',sim_type='FLARES')
 
-fl = flares.flares()
+in_dir = '/cosma7/data/dp004/dc-payy1/my_files/flares_pipeline/data/'
 
-outfile = h5py.File('data/flares.hdf5','w')
+with h5py.File('data/flares.hdf5','w') as outfile:
 
-for halo in fl.halos:
-    print(halo)
+    for halo in fl.halos:
+        print(halo)
 
-    fl.create_group_h5py('data/flares.hdf5',halo)
+        fl.create_group_hdf5('data/flares.hdf5',halo)
 
-    infile = h5py.File('data/GEAGLE_%s_sp_info.hdf5'%halo,'r')
+        infile = h5py.File('%s/GEAGLE_%s_sp_info.hdf5'%(in_dir,halo),'r')
 
-    infile.copy('010_z005p000',outfile[halo])
-
-
-    #
-    # recursively_save_contents(outfile, halo, infile)
+        for tag in fl.tags:
+            infile.copy(tag,outfile[halo])
