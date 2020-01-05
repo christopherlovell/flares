@@ -18,7 +18,7 @@ conv = (u.solMass/u.Mpc**2).to(u.solMass/u.pc**2)
 class flares:
 
     def __init__(self,fname,sim_type='FLARES'):
-        
+
         self.fname =fname
         self.sim_type = sim_type
 
@@ -29,9 +29,9 @@ class flares:
         self.agn_directory = '/cosma5/data/Eagle/ScienceRuns/Planck1/L0050N0752/PE/S15_AGNdT9/data'
 
         self.cosmo = cosmo
-        
+
         # self.data = "%s/data"%(os.path.dirname(os.path.realpath(__file__)))
-        
+
         if self.sim_type == 'FLARES':
             self.radius = 14. #in cMpc/h
             self.halos = np.array([
@@ -65,20 +65,21 @@ class flares:
 
     # @jit
     def _sphere(self, coords, a, b, c, r):
-    
+
         #Equation of a sphere
-    
+
         x, y, z = coords[:,0], coords[:,1], coords[:,2]
-    
+
         return (x-a)**2 + (y-b)**2 + (z-c)**2 - r**2
 
 
-    def spherical_region(self, halo, snap):
+    def spherical_region(self, sim, snap):
+
         """
         Inspired from David Turner's suggestion
         """
 
-        dm_cood = E.read_array('PARTDATA', halo, snap, '/PartType1/Coordinates',
+        dm_cood = E.read_array('PARTDATA', sim, snap, '/PartType1/Coordinates',
         noH=False, physicalUnits=False, numThreads=4)  #dm particle coordinates
 
         hull = ConvexHull(dm_cood)
@@ -165,7 +166,7 @@ class flares:
             out = {tag: None for tag in self.tags}
             for tag in self.tags:
                 out[tag] = f['%s/%s/%s'%(tag,arr_type,name)][:]
-        
+
         return out
 
 
@@ -191,23 +192,23 @@ class flares:
 
     #def get_SFT(SFT, redshift):
     def get_star_formation_time(self, SFT, redshift):
-    
+
         SFz = (1/SFT) - 1.
         SFz = self.cosmo.age(redshift).value - self.cosmo.age(SFz).value
         return SFz
-    
+
     def get_age(self, arr, z, numThreads = 4):
-    
+
         if numThreads == 1:
             pool = schwimmbad.SerialPool()
         elif numThreads == -1:
             pool = schwimmbad.MultiPool()
         else:
             pool = schwimmbad.MultiPool(processes=numThreads)
-    
+
         calc = partial(get_SFT, redshift = z)
         Age = np.array(list(pool.map(calc,arr)))
-    
+
         return Age
 
 

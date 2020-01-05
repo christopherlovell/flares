@@ -9,11 +9,10 @@ with h5py.File('data/flares.hdf5','w') as outfile:
 
     for halo in fl.halos:
         print(halo)
-        
+
         fl.create_group_hdf5('data/flares.hdf5',halo)
-        
-        infile = h5py.File('%s/GEAGLE_%s_sp_info.hdf5'%(in_dir,halo),'r') 
-       
+
+        infile = h5py.File('%s/GEAGLE_%s_sp_info.hdf5'%(in_dir,halo),'r')
+
         for tag in fl.tags:
             infile.copy(tag,outfile[halo])
-

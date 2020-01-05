@@ -57,64 +57,7 @@ def make_faceon(cop, this_g_cood, this_g_mass, this_g_vel):
     return new
 
 
-def extract_subfind_info(fname='data/flares.h5', overwrite=False, threads=8):
-
-    fl = flares.flares()
-    
-    fl.create_group_h5py(fname, 'mstar')
-    fl.create_group_h5py(fname, 'sfr')
-    fl.create_group_h5py(fname, 'centrals')
-    
-    for halo in fl.halos:
-        
-        print(halo)
-    
-        fl.create_group_h5py(fname, halo)
-    
-        for tag in fl.tags:
-        
-            fl.create_group_h5py(fname, '%s/%s'%(halo,tag))
-            
-            print(tag)
-    
-            halodir = fl.directory+'/GEAGLE_'+halo+'/data/'
-
-            if (fl.check_h5py(fname, '%s/%s'%(halo,tag)) is False) |\
-                    (overwrite == True):
-                
-                mstar = E.read_array("SUBFIND", halodir, tag, 
-                                     "/Subhalo/Stars/Mass", 
-                                     numThreads=threads, noH=True)
-    
-                fl.write_data_h5py(fname, '%s/%s'%(halo,tag), 'Mstar', 
-                                data=mstar, overwrite=True)
-               
-    
-            if (fl.check_h5py(fname, 'sfr/%s/%s'%(halo,tag)) is False) |\
-                    (overwrite == True):
-                
-                sfr = E.read_array("SUBFIND", halodir, tag, 
-                                   "/Subhalo/StarFormationRate", 
-                                   numThreads=threads, noH=True)
-    
-                fl.write_data_h5py(fname, '%s/%s'%(halo,tag), 'SFR', 
-                                data=sfr, overwrite=True)
-    
-    
-            if (fl.check_h5py(fname, 'centrals/%s/%s'%(halo,tag)) is False) |\
-                    (overwrite == True):
-    
-                centrals = (E.read_array("SUBFIND", halodir, tag, 
-                                         "/Subhalo/SubGroupNumber", 
-                                         numThreads=threads, noH=True) == 0)
-                
-                fl.write_data_h5py(fname, '%s/%s'%(halo,tag), 'SubGroupNumber', 
-                                data=centrals, overwrite=True) 
-
-
-
-
-def extract_info(num, tag, kernel='sph-anarchy', inp='GEAGLE'):
+def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     """
 
     Args:
@@ -124,14 +67,14 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='GEAGLE'):
     Selects only galaxies with more than 100 star+gas particles inside 30pkpc
 
     """
-    fl = flares.flares()
+    fl = flares.flares(fname = './data/',sim_type=inp)
     ## MPI parameters
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
     #print ("rank={}, size={}".format(rank, size))
     print (F"Extracing information from {inp} {num} {tag}")
-    if inp == 'GEAGLE':
+    if inp == 'FLARES':
 
         num = str(num)
         if len(num) == 1:
@@ -321,7 +264,7 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='GEAGLE'):
     ts_sml = ts_sml[:tstot]
     tg_sml = tg_sml[:tgtot]
 
-    tsage = flares.get_age(tsage[:tstot], z, 4)
+    tsage = fl.get_age(tsage[:tstot], z, 4)
     tZ_los = tZ_los[:tstot]
 
     comm.Barrier()
@@ -374,10 +317,10 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='GEAGLE'):
 
 ##End of function `extract_info`
 
-def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='GEAGLE'):
+def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
 
     num = str(num)
-    if inp == 'GEAGLE':
+    if inp == 'FLARES':
         if len(num) == 1:
             num =  '0'+num
         filename = 'data/GEAGLE_{}_sp_info.hdf5'.format(num)
@@ -459,4 +402,17 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='GEAGLE'):
 
 
 if __name__ == "__main__":
-    extract_subfind_info(overwrite=False)
+
+    ii, tag, inp = sys.argv[1], sys.argv[2], sys.argv[3]
+    print (ii, tag, inp)
+
+    num = str(ii)
+    tag = str(tag)
+    inp = str(inp)
+
+    if len(num) == 1:
+        num =  '0'+num
+
+    from save_as_hdf5 import save_to_hdf5
+
+    save_to_hdf5(num, tag, inp=inp)
