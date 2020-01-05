@@ -7,7 +7,7 @@ from mpi4py import MPI
 
 import sys
 import eagle_IO.eagle_IO as E
-from HDF5_write import HDF5_write
+from hdf5_methods import HDF5_write
 import flares
 
 norm = np.linalg.norm
@@ -55,6 +55,63 @@ def make_faceon(cop, this_g_cood, this_g_mass, this_g_vel):
     new = np.array(this_s_cood.dot(r))
 
     return new
+
+
+
+# def extract_subfind_info(fname='data/flares.h5', overwrite=False, threads=8):
+# 
+#     fl = flares.flares()
+#     
+#     fl.create_group_h5py(fname, 'mstar')
+#     fl.create_group_h5py(fname, 'sfr')
+#     fl.create_group_h5py(fname, 'centrals')
+#     
+#     for halo in fl.halos:
+#         
+#         print(halo)
+#     
+#         fl.create_group_h5py(fname, halo)
+#     
+#         for tag in fl.tags:
+#         
+#             fl.create_group_h5py(fname, '%s/%s'%(halo,tag))
+#             
+#             print(tag)
+#     
+#             halodir = fl.directory+'/GEAGLE_'+halo+'/data/'
+# 
+#             if (fl.check_h5py(fname, '%s/%s'%(halo,tag)) is False) |\
+#                     (overwrite == True):
+#                 
+#                 mstar = E.read_array("SUBFIND", halodir, tag, 
+#                                      "/Subhalo/Stars/Mass", 
+#                                      numThreads=threads, noH=True)
+#     
+#                 fl.write_data_h5py(fname, '%s/%s'%(halo,tag), 'Mstar', 
+#                                 data=mstar, overwrite=True)
+#                
+#     
+#             if (fl.check_h5py(fname, 'sfr/%s/%s'%(halo,tag)) is False) |\
+#                     (overwrite == True):
+#                 
+#                 sfr = E.read_array("SUBFIND", halodir, tag, 
+#                                    "/Subhalo/StarFormationRate", 
+#                                    numThreads=threads, noH=True)
+#     
+#                 fl.write_data_h5py(fname, '%s/%s'%(halo,tag), 'SFR', 
+#                                 data=sfr, overwrite=True)
+#     
+#     
+#             if (fl.check_h5py(fname, 'centrals/%s/%s'%(halo,tag)) is False) |\
+#                     (overwrite == True):
+#     
+#                 centrals = (E.read_array("SUBFIND", halodir, tag, 
+#                                          "/Subhalo/SubGroupNumber", 
+#                                          numThreads=threads, noH=True) == 0)
+#                 
+#                 fl.write_data_h5py(fname, '%s/%s'%(halo,tag), 'SubGroupNumber', 
+#                                 data=centrals, overwrite=True) 
+
 
 
 def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
@@ -133,7 +190,7 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     #gp_vel = E.read_array('PARTDATA', sim, tag, '/PartType0/Velocity', noH=True, physicalUnits=True, numThreads=4)
     gp_sl = E.read_array('PARTDATA', sim, tag, '/PartType0/SmoothingLength', noH=True, physicalUnits=True, numThreads=4)
 
-    kinp = np.load('kernel_{}.npz'.format(kernel), allow_pickle=True)
+    kinp = np.load('data/kernel_{}.npz'.format(kernel), allow_pickle=True)
     lkernel = kinp['kernel']
     header = kinp['header']
     kbins = header.item()['bins']
