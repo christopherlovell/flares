@@ -20,6 +20,7 @@ class flares:
     def __init__(self,fname,sim_type='FLARES'):
 
         self.fname =fname
+        self.compression = 'gzip'
         self.sim_type = sim_type
 
         #Put down the sim root location here
@@ -153,45 +154,7 @@ class flares:
                 uplims=(~mask[phi > 0.]),
                 label=label, c=color, alpha=alpha, **kwargs)
 
-
-
-    def load_property(self,name,arr_type='Subhalo'):
-
-        if self.sim_type == "FLARES":
-            out = {halo: {tag: None for tag in self.tags} for halo in self.halos}
-            with h5py.File(self.fname,'r') as f:
-                for halo in self.halos:
-                    for tag in self.tags:
-                        out[halo][tag] = f['%s/%s/%s/%s'%(halo,tag,arr_type,name)][:]
-        elif self.sim_type == "PERIODIC":
-            out = {tag: None for tag in self.tags}
-            with h5py.File(self.fname,'r') as f:
-                for tag in self.tags:
-                    out[tag] = f['%s/%s/%s'%(tag,arr_type,name)][:]
-
-        return out
-
-
-
-
-    def create_group_hdf5(self, filename, obj_str):
-        check = self.check_hdf5(filename, obj_str)
-        with h5py.File(filename, 'a') as h5file:
-            if check:
-                print('Object already exists')
-                return False
-            else:
-                h5file.create_group(obj_str)
-
-
-    def check_hdf5(self, filename, obj_str):
-        with h5py.File(filename, 'a') as h5file:
-            if obj_str not in h5file:
-                return False
-            else:
-                return True
-
-
+    
     #def get_SFT(SFT, redshift):
     def get_star_formation_time(self, SFT, redshift):
 
@@ -212,6 +175,121 @@ class flares:
         Age = np.array(list(pool.map(calc,arr)))
 
         return Age
+
+
+    
+    """
+    HDF5 functionality
+    """
+    
+    def _check_hdf5(self, obj_str):
+        with h5py.File(self.fname, 'a') as h5file:
+            if obj_str not in h5file:
+                return False
+            else:
+                return True
+    
+    def create_group(self, group_name, desc=None, verbose=False):
+        check = self._check_hdf5(group_name)
+        if check:
+            if verbose: print("`{}` group already created".format(group_name))
+            return False
+        
+        with h5py.File(self.fname, 'a') as h5file:
+            dset = h5file.create_group(obj_str)
+            if desc is not None:
+                dset.attrs['Description'] = desc
+    
+
+    def create_header(self, hdr_name, value):
+        with h5py.File(self.fname, mode='a') as h5f:
+            if hdr_name not in list(h5f.keys()):
+                hdr = h5f.create_group(hdr_name)
+                for ii in value.keys():
+                    hdr.attrs[ii] = value[ii]
+            else:
+                print("`{}` attributes group already created".format(hdr_name))
+                return False
+                #sys.exit()
+
+
+
+    def create_dataset(self, values, name, group='/', overwrite=False, 
+                       dtype=np.float64, desc = None, unit = None, verbose=False):
+
+        shape = np.shape(values)
+
+        if self._check_hdf5(group) is False:
+            raise ValueError("Group does not exist")
+            return False
+        
+        
+        with h5py.File(self.fname, mode='a') as h5f:
+        
+            if overwrite:
+                if verbose: print('Overwriting data in %s/%s'%(group,name))
+                if self._check_hdf5("%s/%s"%(group,name)) is True:
+                    grp = h5f[group]
+                    del grp[name]
+
+            try:
+                dset = h5f.create_dataset("%s/%s"%(group,name), shape=shape,
+                                           maxshape=(None,) + shape[1:],
+                                           dtype=dtype, compression=self.compression, 
+                                           data=values)
+
+                if desc is not None:
+                    dset.attrs['Description'] = desc
+                if unit is not None:
+                    dset.attrs['Units'] = unit
+
+            except Exception as e:
+                print("Oh! something went wrong while creating {}/{} or it already exists.\
+                       \nNo value was written into the dataset.".format(group, dataset))
+                print (e)
+                # sys.exit
+
+
+    def load_dataset(self,name,arr_type='Subhalo'):
+
+        if self.sim_type == "FLARES":
+            out = {halo: {tag: None for tag in self.tags} for halo in self.halos}
+
+            with h5py.File(self.fname,'r') as f:
+                for halo in self.halos:
+                    for tag in self.tags:
+                        out[halo][tag] = f['%s/%s/%s/%s'%(halo,tag,arr_type,name)][:]
+        elif self.sim_type == "PERIODIC":
+            out = {tag: None for tag in self.tags}
+
+            with h5py.File(self.fname,'r') as f:
+                for tag in self.tags:
+                    out[tag] = f['%s/%s/%s'%(tag,arr_type,name)][:]
+
+        return out
+
+
+    def append_to_dataset(self, values, dataset, group = '/'):
+        with h5py.File(self.fname, mode='a') as h5f:
+            dset = h5f["{}/{}".format(group, dataset)]
+            ini = len(dset)
+
+            if np.isscalar(values):
+                add = 1
+            else:
+                add = len(values)
+
+            dset.resize(ini+add, axis = 0)
+            dset[ini:] = values
+            h5f.flush()
+
+
+    def write_attribute(self, loc, desc):
+        with h5py.File(self.fname, mode='a') as h5f:
+            dset = h5f[loc]
+            dset.attrs['Description'] = desc
+            #dset.close()
+
 
 
 
