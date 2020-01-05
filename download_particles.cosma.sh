@@ -20,7 +20,7 @@ array=(002_z009p993 003_z008p988 004_z008p075 005_z007p050 006_z005p971 008_z005
 
 source /cosma7/data/dp004/dc-payy1/my_files/photometry/venv_photo/bin/activate
 
-mpiexec -n 16 python3 save_as_hdf5.py $SLURM_ARRAY_TASK_ID ${array[$SLURM_ARRAY_TASK_ID]} AGNdT9
+mpiexec -n 16 python3 download_methods.py $SLURM_ARRAY_TASK_ID ${array[$SLURM_ARRAY_TASK_ID]} AGNdT9
 
 echo "Job done, info follows..."
 sacct -j $SLURM_JOBID --format=JobID,JobName,Partition,MaxRSS,Elapsed,ExitCode

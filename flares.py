@@ -159,13 +159,15 @@ class flares:
 
         if self.sim_type == "FLARES":
             out = {halo: {tag: None for tag in self.tags} for halo in self.halos}
-            for halo in self.halos:
-                for tag in self.tags:
-                    out[halo][tag] = f['%s/%s/%s/%s'%(halo,tag,arr_type,name)][:]
+            with h5py.File(self.fname,'r') as f:
+                for halo in self.halos:
+                    for tag in self.tags:
+                        out[halo][tag] = f['%s/%s/%s/%s'%(halo,tag,arr_type,name)][:]
         elif self.sim_type == "PERIODIC":
             out = {tag: None for tag in self.tags}
-            for tag in self.tags:
-                out[tag] = f['%s/%s/%s'%(tag,arr_type,name)][:]
+            with h5py.File(self.fname,'r') as f:
+                for tag in self.tags:
+                    out[tag] = f['%s/%s/%s'%(tag,arr_type,name)][:]
 
         return out
 
