@@ -62,64 +62,64 @@ def extract_subfind_info(fname='data/flares.h5', inp='FLARES', overwrite=False, 
 
     fl = flares.flares(fname,inp)
     indices = fl.load_dataset('Indices')
-    
+
     for halo in fl.halos:
-        
+
         print(halo)
-    
+
         fl.create_group(halo)
-    
+
         for tag in fl.tags:
-        
+
             fl.create_group('%s/%s'%(halo,tag))
             fl.create_group('%s/%s/Subhalo'%(halo,tag))
-            
+
             print(tag)
-    
-            halodir = fl.directory+'/GEAGLE_'+halo+'/data/'
+
+            halodir = fl.directory+'/FLARES_'+halo+'/data/'
 
             if (fl._check_hdf5('%s/%s/Subhalo/Mhalo'%(halo,tag)) is False) |\
                      (overwrite == True):
-                 
-                _mhalo = E.read_array("SUBFIND", halodir, tag, 
-                                     "/Subhalo/Mass", 
+
+                _mhalo = E.read_array("SUBFIND", halodir, tag,
+                                     "/Subhalo/Mass",
                                      numThreads=threads, noH=True)
-    
-                fl.create_dataset(_mhalo[indices[halo][tag].astype(int)], 'Mhalo', 
+
+                fl.create_dataset(_mhalo[indices[halo][tag].astype(int)], 'Mhalo',
                                   '%s/%s/Subhalo/'%(halo,tag), overwrite=True)
 
 
             # if (fl._check_hdf5(fname, '%s/%s'%(halo,tag)) is False) |\
             #         (overwrite == True):
-            #     
-            #     mstar = E.read_array("SUBFIND", halodir, tag, 
-            #                          "/Subhalo/Stars/Mass", 
+            #
+            #     mstar = E.read_array("SUBFIND", halodir, tag,
+            #                          "/Subhalo/Stars/Mass",
             #                          numThreads=threads, noH=True)
-    
-            #     fl.write_data_h5py(fname, '%s/%s/Subhalo/'%(halo,tag), 'Mstar', 
+
+            #     fl.write_data_h5py(fname, '%s/%s/Subhalo/'%(halo,tag), 'Mstar',
             #                     data=mstar, overwrite=True)
-            #    
-    
+            #
+
             # if (fl._check_hdf5(fname, 'sfr/%s/%s'%(halo,tag)) is False) |\
             #         (overwrite == True):
-            #     
-            #     sfr = E.read_array("SUBFIND", halodir, tag, 
-            #                        "/Subhalo/StarFormationRate", 
+            #
+            #     sfr = E.read_array("SUBFIND", halodir, tag,
+            #                        "/Subhalo/StarFormationRate",
             #                        numThreads=threads, noH=True)
-    
-            #     fl.write_data_h5py(fname, '%s/%s/Subhalo/'%(halo,tag), 'SFR', 
+
+            #     fl.write_data_h5py(fname, '%s/%s/Subhalo/'%(halo,tag), 'SFR',
             #                     data=sfr, overwrite=True)
-    
-    
+
+
             # if (fl._check_hdf5(fname, 'centrals/%s/%s'%(halo,tag)) is False) |\
             #         (overwrite == True):
-    
-            #     centrals = (E.read_array("SUBFIND", halodir, tag, 
-            #                              "/Subhalo/SubGroupNumber", 
+
+            #     centrals = (E.read_array("SUBFIND", halodir, tag,
+            #                              "/Subhalo/SubGroupNumber",
             #                              numThreads=threads, noH=True) == 0)
-            #     
-            #     fl.write_data_h5py(fname, '%s/%s/Subhalo/'%(halo,tag), 'SubGroupNumber', 
-            #                     data=centrals, overwrite=True) 
+            #
+            #     fl.write_data_h5py(fname, '%s/%s/Subhalo/'%(halo,tag), 'SubGroupNumber',
+            #                     data=centrals, overwrite=True)
 
 
 
@@ -168,7 +168,7 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     grpno = E.read_array('SUBFIND', sim, tag, '/Subhalo/GroupNumber', numThreads=4)
     vel = E.read_array('SUBFIND', sim, tag, '/Subhalo/Velocity', noH=True, physicalUnits=True, numThreads=4)
 
-    if inp == 'GEAGLE':
+    if inp == 'FLARES':
         cop = E.read_array('SUBFIND', sim, tag, '/Subhalo/CentreOfPotential', noH=False, physicalUnits=False, numThreads=4) #units of cMpc/h
         cen, r, min_dist = fl.spherical_region(sim, tag)  #units of cMpc/h
         #indices = np.where(np.logical_and(mstar >= 10**8, np.sqrt(np.sum((cop-cen)**2, axis = 1))<=min_dist-2.) == True)[0]
@@ -305,7 +305,7 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
             ind = np.append(ind, ii)
 
     ##End of loop ii, jj##
-    del sgrpno, grpno, sp_sgrpn, sp_grpn, sp_mass, sp_Z, sp_cood, sp_sl, sp_ft, gp_sgrpn, gp_grpn, gp_mass, gp_Z, gp_cood, gp_sl
+    del sp_sgrpn, sp_grpn, sp_mass, sp_Z, sp_cood, sp_sl, sp_ft, gp_sgrpn, gp_grpn, gp_mass, gp_Z, gp_cood, gp_sl
 
     gc.collect()
 
@@ -379,7 +379,7 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
         Z_los = np.concatenate(np.array(Z_los))
 
 
-    return indices, mstar[indices], cop[indices]/a, vel[indices], sfr_inst[indices], snum, gnum, scood, gcood, smass, gmass, sZ, gZ, s_sml, g_sml, sage, Z_los
+    return indices, mstar[indices], cop[indices]/a, vel[indices], sfr_inst[indices], grpno[indices], sgrpno[indices], snum, gnum, scood, gcood, smass, gmass, sZ, gZ, s_sml, g_sml, sage, Z_los
 
 ##End of function `extract_info`
 
@@ -389,10 +389,12 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
     if inp == 'FLARES':
         if len(num) == 1:
             num =  '0'+num
-        filename = 'data/GEAGLE_{}_sp_info.hdf5'.format(num)
+        filename = 'data/FLARES_{}_sp_info.hdf5'.format(num)
+        sim_type = 'FLARES'
     elif inp == 'REF' or inp == 'AGNdT9':
 
         filename = F"data/EAGLE_{inp}_sp_info.hdf5"
+        sim_type = 'PERIODIC'
 
     else:
 
@@ -409,64 +411,68 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
         print ("#################   Number of processors being used is {}   #############".format(size))
 
 
-    indices, mstar, cop, vel, sfr_inst, snum, gnum, scood, gcood, smass, gmass, sZ, gZ, s_sml, g_sml, sage, Z_los = extract_info(num, tag, kernel, inp)
+    indices, mstar, cop, vel, sfr_inst,  grpno, sgrpno, snum, gnum, scood, gcood, smass, gmass, sZ, gZ, s_sml, g_sml, sage, Z_los = extract_info(num, tag, kernel, inp)
 
 
     if rank == 0:
 
         print("Wrting out required properties to hdf5")
 
-        hdf5_store = HDF5_write(filename)
-        hdf5_store.create_grp(tag)
+        fl = flares.flares(fname = filename,sim_type = sim_type)
+        fl.create_grp(tag)
 
-        hdf5_store.create_grp('{}/Subhalo'.format(tag))
-        hdf5_store.create_grp('{}/Particle'.format(tag))
-        
+        fl.create_grp('{}/Subhalo'.format(tag))
+        fl.create_grp('{}/Particle'.format(tag))
+
 
         ## TODO: Indices should be of integer type
-        hdf5_store.create_dset(indices, 'Indices', '{}/Subhalo'.format(tag),
+        fl.create_dset(indices, 'Indices', '{}/Subhalo'.format(tag),
             desc = 'Index of the galaxy in the resimulation')
 
 
-        hdf5_store.create_dset(mstar, 'Mstar_30', '{}/Subhalo'.format(tag),
+        fl.create_dset(mstar, 'Mstar_30', '{}/Subhalo'.format(tag),
             desc = 'Stellar mass of the galaxy measured inside 30pkc aperture', unit = 'Msun')
-        hdf5_store.create_dset(cop.T, 'COP', '{}/Subhalo'.format(tag),
+        fl.create_dset(cop.T, 'COP', '{}/Subhalo'.format(tag),
             desc = 'Centre Of Potential of the galaxy', unit = 'cMpc')
-        hdf5_store.create_dset(vel.T, 'Velocity', '{}/Subhalo'.format(tag),
+        fl.create_dset(vel.T, 'Velocity', '{}/Subhalo'.format(tag),
             desc = 'Velocity of the galaxy', unit = 'km/s')
-        hdf5_store.create_dset(sfr_inst, 'SFR_inst_30', '{}/Subhalo'.format(tag),
+        fl.create_dset(sfr_inst, 'SFR_inst_30', '{}/Subhalo'.format(tag),
             desc = 'Instantaneous sfr of the galaxy measured inside 30pkc aperture', unit = 'Msun/yr')
+        fl.create_dset(grpno, 'GroupNumber', '{}/Subhalo'.format(tag), dtype = np.int64,
+            desc = 'Group Number of the galaxy')
+        fl.create_dset(sgrpno, 'SubGroupNumber', '{}/Subhalo'.format(tag), dtype = np.int64,
+            desc = 'Subgroup Number of the galaxy')
 
 
 
-        hdf5_store.create_dset(snum, 'S_Length', '{}/Subhalo'.format(tag), dtype = np.int64,
+        fl.create_dset(snum, 'S_Length', '{}/Subhalo'.format(tag), dtype = np.int64,
             desc = 'Number of star particles inside 30pkpc')
-        hdf5_store.create_dset(gnum, 'G_Length', '{}/Subhalo'.format(tag), dtype = np.int64,
+        fl.create_dset(gnum, 'G_Length', '{}/Subhalo'.format(tag), dtype = np.int64,
             desc = 'Number of gas particles inside 30pkpc')
 
-        hdf5_store.create_dset(scood.T, 'S_Coordinates', '{}/Particle'.format(tag),
+        fl.create_dset(scood.T, 'S_Coordinates', '{}/Particle'.format(tag),
             desc = 'Star particle coordinates', unit = 'cMpc')
-        hdf5_store.create_dset(gcood.T, 'G_Coordinates', '{}/Particle'.format(tag),
+        fl.create_dset(gcood.T, 'G_Coordinates', '{}/Particle'.format(tag),
             desc = 'Gas particle coordinates', unit = 'cMpc')
 
-        hdf5_store.create_dset(smass, 'S_Mass', '{}/Particle'.format(tag),
+        fl.create_dset(smass, 'S_Mass', '{}/Particle'.format(tag),
             desc = 'Star particle masses', unit = 'Msun')
-        hdf5_store.create_dset(gmass, 'G_Mass', '{}/Particle'.format(tag),
+        fl.create_dset(gmass, 'G_Mass', '{}/Particle'.format(tag),
             desc = 'Gas particle masses', unit = 'Msun')
 
-        hdf5_store.create_dset(sZ, 'S_Z', '{}/Particle'.format(tag),
+        fl.create_dset(sZ, 'S_Z', '{}/Particle'.format(tag),
             desc = 'Star particle metallicity', unit = 'No units')
-        hdf5_store.create_dset(gZ, 'G_Z', '{}/Particle'.format(tag),
+        fl.create_dset(gZ, 'G_Z', '{}/Particle'.format(tag),
             desc = 'Gas particle metallicity', unit = 'No units')
 
-        hdf5_store.create_dset(s_sml, 'S_sml', '{}/Particle'.format(tag),
+        fl.create_dset(s_sml, 'S_sml', '{}/Particle'.format(tag),
             desc = 'Star particle smoothing length', unit = 'pMpc')
-        hdf5_store.create_dset(g_sml, 'G_sml', '{}/Particle'.format(tag),
+        fl.create_dset(g_sml, 'G_sml', '{}/Particle'.format(tag),
             desc = 'Gas particle smoothing length', unit = 'pMpc')
 
-        hdf5_store.create_dset(sage, 'S_Age', '{}/Particle'.format(tag),
+        fl.create_dset(sage, 'S_Age', '{}/Particle'.format(tag),
             desc = 'Star particle age', unit = 'Gyr')
-        hdf5_store.create_dset(Z_los, 'S_los', '{}/Particle'.format(tag),
+        fl.create_dset(Z_los, 'S_los', '{}/Particle'.format(tag),
             desc = 'Star particle line-of-sight metal column density along the z-axis', unit = 'Msun/pc^2')
 
 
