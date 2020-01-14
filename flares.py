@@ -360,7 +360,7 @@ def get_recent_SFR(tag, t = 100, inp = 'FLARES'):
     #t is time in Myr
     #SFR in Msun/yr
 
-    fl = flares.flares('data/flares.hdf5',sim_type='FLARES')
+    fl = flares('data/flares.hdf5',sim_type='FLARES')
 
     if inp == 'FLARES':
         sim = "./data/flares.hdf5"
