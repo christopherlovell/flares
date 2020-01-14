@@ -154,8 +154,11 @@ class flares:
                 uplims=(~mask[phi > 0.]),
                 label=label, c=color, alpha=alpha, **kwargs)
 
-    
-    #def get_SFT(SFT, redshift):
+
+    """
+    Age of stellar particles
+    """
+
     def get_star_formation_time(self, SFT, redshift):
 
         SFz = (1/SFT) - 1.
@@ -171,35 +174,35 @@ class flares:
         else:
             pool = schwimmbad.MultiPool(processes=numThreads)
 
-        calc = partial(get_SFT, redshift = z)
+        calc = partial(get_star_formation_time, redshift = z)
         Age = np.array(list(pool.map(calc,arr)))
 
         return Age
 
 
-    
+
     """
     HDF5 functionality
     """
-    
+
     def _check_hdf5(self, obj_str):
         with h5py.File(self.fname, 'a') as h5file:
             if obj_str not in h5file:
                 return False
             else:
                 return True
-    
+
     def create_group(self, group_name, desc=None, verbose=False):
         check = self._check_hdf5(group_name)
         if check:
             if verbose: print("`{}` group already created".format(group_name))
             return False
-        
+
         with h5py.File(self.fname, 'a') as h5file:
             dset = h5file.create_group(obj_str)
             if desc is not None:
                 dset.attrs['Description'] = desc
-    
+
 
     def create_header(self, hdr_name, value):
         with h5py.File(self.fname, mode='a') as h5f:
@@ -214,7 +217,7 @@ class flares:
 
 
 
-    def create_dataset(self, values, name, group='/', overwrite=False, 
+    def create_dataset(self, values, name, group='/', overwrite=False,
                        dtype=np.float64, desc = None, unit = None, verbose=False):
 
         shape = np.shape(values)
@@ -222,10 +225,10 @@ class flares:
         if self._check_hdf5(group) is False:
             raise ValueError("Group does not exist")
             return False
-        
-        
+
+
         with h5py.File(self.fname, mode='a') as h5f:
-        
+
             if overwrite:
                 if verbose: print('Overwriting data in %s/%s'%(group,name))
                 if self._check_hdf5("%s/%s"%(group,name)) is True:
@@ -235,7 +238,7 @@ class flares:
             try:
                 dset = h5f.create_dataset("%s/%s"%(group,name), shape=shape,
                                            maxshape=(None,) + shape[1:],
-                                           dtype=dtype, compression=self.compression, 
+                                           dtype=dtype, compression=self.compression,
                                            data=values)
 
                 if desc is not None:
@@ -336,3 +339,65 @@ def get_Z_LOS(s_cood, g_cood, g_mass, g_Z, g_sml, lkernel, kbins):
     Z_los_SD*=conv #in units of Msun/pc^2
 
     return Z_los_SD
+
+
+
+def get_flares(ii):
+
+    sim = "./data/flares.hdf5"
+    num = str(ii)
+
+    if len(num) == 1:
+        num =  '00'+num+'/'
+    elif len(num) == 2:
+        num =  '0'+num+'/'
+
+    return sim, num
+
+
+def get_recent_SFR(tag, t = 100, inp = 'FLARES'):
+
+    #t is time in Myr
+    #SFR in Msun/yr
+
+    fl = flares.flares('data/flares.hdf5',sim_type='FLARES')
+
+    if inp == 'FLARES':
+        sim = "./data/flares.hdf5"
+        n = 40
+    elif (inp == 'REF') or (inp == 'AGNdT9'):
+        sim = F"./data/EAGLE_{inp}_sp_info.hdf5"
+        n = 1
+        num = ''
+    else:
+        ValueError(F"No input option of {inp}")
+
+    for ii in range(n):
+        if inp == 'FLARES': num = fl.halos[ii]
+
+        with h5py.File(sim, 'r') as hf:
+
+            S_len = np.array(hf[F'{num}/{tag}/Subhalo'].get('S_Length'), dtype = np.int64)
+            S_mass = np.array(hf[F'{num}/{tag}/Particle'].get('S_Mass'), dtype = np.float64)
+            S_age = np.array(hf[F'{num}/{tag}/Particle'].get('S_Age'), dtype = np.float64)*1e3
+
+        begin = np.zeros(len(S_len), dtype = np.int64)
+        end = np.zeros(len(S_len), dtype = np.int64)
+        begin[1:] = np.cumsum(S_len)[:-1]
+        end = np.cumsum(S_len)
+
+        SFR = np.zeros(len(begin))
+
+        for jj, kk in enumerate(begin):
+
+            this_age = S_age[begin[jj]:end[jj]]
+            this_mass = S_mass[begin[jj]:end[jj]]
+            ok = np.where(this_age <= t)[0]
+            if len(ok) > 0:
+
+                SFR[jj] = np.sum(this_mass[ok])/1E6
+
+        fl.create_dataset(SFR, F"{num}/{tag}/Subhalo/SFR/SFR_{t}",
+        desc = F"SFR of the galaxy averaged over the last {t}Myr", unit = "Msun/yr")
+
+    print (F"Saved the SFR averaged over {t}Myr to file")
