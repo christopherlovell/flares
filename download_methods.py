@@ -81,23 +81,23 @@ def extract_subfind_info(fname='data/flares.h5', inp='FLARES', overwrite=False, 
             if (fl._check_hdf5('%s/%s/Subhalo/Mhalo'%(halo,tag)) is False) |\
                      (overwrite == True):
 
-                 
-                _mhalo = E.read_array("SUBFIND", halodir, tag, 
-                                     "/Subhalo/Mass", 
+
+                _mhalo = E.read_array("SUBFIND", halodir, tag,
+                                     "/Subhalo/Mass",
                                      numThreads=threads, noH=True) * 1e10
-    
-                fl.create_dataset(_mhalo[indices[halo][tag].astype(int)], 'Mhalo', 
+
+                fl.create_dataset(_mhalo[indices[halo][tag].astype(int)], 'Mhalo',
                                   '%s/%s/Subhalo/'%(halo,tag), overwrite=True)
-           
+
 
             if (fl._check_hdf5('%s/%s/Subhalo/Centrals'%(halo,tag)) is False) |\
                     (overwrite == True):
-    
-                _centrals = (E.read_array("SUBFIND", halodir, tag, 
-                                         "/Subhalo/SubGroupNumber", 
+
+                _centrals = (E.read_array("SUBFIND", halodir, tag,
+                                         "/Subhalo/SubGroupNumber",
                                          numThreads=threads, noH=True) == 0)
-                
-                fl.create_dataset(_centrals[indices[halo][tag].astype(int)], 'Centrals', 
+
+                fl.create_dataset(_centrals[indices[halo][tag].astype(int)], 'Centrals',
                                   '%s/%s/Subhalo/'%(halo,tag), overwrite=True)
 
 
@@ -427,54 +427,53 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
         fl.create_grp('{}/Particle'.format(tag))
 
 
-        ## TODO: Indices should be of integer type
-        fl.create_dset(indices, 'Indices', '{}/Subhalo'.format(tag),
+        fl.create_dataset(indices, 'Indices', '{}/Subhalo'.format(tag), dtype = np.int64,
             desc = 'Index of the galaxy in the resimulation')
 
 
-        fl.create_dset(mstar, 'Mstar_30', '{}/Subhalo'.format(tag),
+        fl.create_dataset(mstar, 'Mstar_30', '{}/Subhalo'.format(tag),
             desc = 'Stellar mass of the galaxy measured inside 30pkc aperture', unit = 'Msun')
-        fl.create_dset(cop.T, 'COP', '{}/Subhalo'.format(tag),
+        fl.create_dataset(cop.T, 'COP', '{}/Subhalo'.format(tag),
             desc = 'Centre Of Potential of the galaxy', unit = 'cMpc')
-        fl.create_dset(vel.T, 'Velocity', '{}/Subhalo'.format(tag),
+        fl.create_dataset(vel.T, 'Velocity', '{}/Subhalo'.format(tag),
             desc = 'Velocity of the galaxy', unit = 'km/s')
-        fl.create_dset(sfr_inst, 'SFR_inst_30', '{}/Subhalo'.format(tag),
+        fl.create_dataset(sfr_inst, 'SFR_inst_30', '{}/Subhalo'.format(tag),
             desc = 'Instantaneous sfr of the galaxy measured inside 30pkc aperture', unit = 'Msun/yr')
-        fl.create_dset(grpno, 'GroupNumber', '{}/Subhalo'.format(tag), dtype = np.int64,
+        fl.create_dataset(grpno, 'GroupNumber', '{}/Subhalo'.format(tag), dtype = np.int64,
             desc = 'Group Number of the galaxy')
-        fl.create_dset(sgrpno, 'SubGroupNumber', '{}/Subhalo'.format(tag), dtype = np.int64,
+        fl.create_dataset(sgrpno, 'SubGroupNumber', '{}/Subhalo'.format(tag), dtype = np.int64,
             desc = 'Subgroup Number of the galaxy')
 
 
 
-        fl.create_dset(snum, 'S_Length', '{}/Subhalo'.format(tag), dtype = np.int64,
+        fl.create_dataset(snum, 'S_Length', '{}/Subhalo'.format(tag), dtype = np.int64,
             desc = 'Number of star particles inside 30pkpc')
-        fl.create_dset(gnum, 'G_Length', '{}/Subhalo'.format(tag), dtype = np.int64,
+        fl.create_dataset(gnum, 'G_Length', '{}/Subhalo'.format(tag), dtype = np.int64,
             desc = 'Number of gas particles inside 30pkpc')
 
-        fl.create_dset(scood.T, 'S_Coordinates', '{}/Particle'.format(tag),
+        fl.create_dataset(scood.T, 'S_Coordinates', '{}/Particle'.format(tag),
             desc = 'Star particle coordinates', unit = 'cMpc')
-        fl.create_dset(gcood.T, 'G_Coordinates', '{}/Particle'.format(tag),
+        fl.create_dataset(gcood.T, 'G_Coordinates', '{}/Particle'.format(tag),
             desc = 'Gas particle coordinates', unit = 'cMpc')
 
-        fl.create_dset(smass, 'S_Mass', '{}/Particle'.format(tag),
+        fl.create_dataset(smass, 'S_Mass', '{}/Particle'.format(tag),
             desc = 'Star particle masses', unit = 'Msun')
-        fl.create_dset(gmass, 'G_Mass', '{}/Particle'.format(tag),
+        fl.create_dataset(gmass, 'G_Mass', '{}/Particle'.format(tag),
             desc = 'Gas particle masses', unit = 'Msun')
 
-        fl.create_dset(sZ, 'S_Z', '{}/Particle'.format(tag),
+        fl.create_dataset(sZ, 'S_Z', '{}/Particle'.format(tag),
             desc = 'Star particle metallicity', unit = 'No units')
-        fl.create_dset(gZ, 'G_Z', '{}/Particle'.format(tag),
+        fl.create_dataset(gZ, 'G_Z', '{}/Particle'.format(tag),
             desc = 'Gas particle metallicity', unit = 'No units')
 
-        fl.create_dset(s_sml, 'S_sml', '{}/Particle'.format(tag),
+        fl.create_dataset(s_sml, 'S_sml', '{}/Particle'.format(tag),
             desc = 'Star particle smoothing length', unit = 'pMpc')
-        fl.create_dset(g_sml, 'G_sml', '{}/Particle'.format(tag),
+        fl.create_dataset(g_sml, 'G_sml', '{}/Particle'.format(tag),
             desc = 'Gas particle smoothing length', unit = 'pMpc')
 
-        fl.create_dset(sage, 'S_Age', '{}/Particle'.format(tag),
+        fl.create_dataset(sage, 'S_Age', '{}/Particle'.format(tag),
             desc = 'Star particle age', unit = 'Gyr')
-        fl.create_dset(Z_los, 'S_los', '{}/Particle'.format(tag),
+        fl.create_dataset(Z_los, 'S_los', '{}/Particle'.format(tag),
             desc = 'Star particle line-of-sight metal column density along the z-axis', unit = 'Msun/pc^2')
 
 
