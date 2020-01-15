@@ -373,13 +373,13 @@ def get_recent_SFR(tag, t = 100, inp = 'FLARES'):
         ValueError(F"No input option of {inp}")
 
     for ii in range(n):
-        if inp == 'FLARES': num = fl.halos[ii]
+        if inp == 'FLARES': num = F'{fl.halos[ii]}/'
 
         with h5py.File(sim, 'r') as hf:
 
-            S_len = np.array(hf[F'{num}/{tag}/Subhalo'].get('S_Length'), dtype = np.int64)
-            S_mass = np.array(hf[F'{num}/{tag}/Particle'].get('S_Mass'), dtype = np.float64)
-            S_age = np.array(hf[F'{num}/{tag}/Particle'].get('S_Age'), dtype = np.float64)*1e3
+            S_len = np.array(hf[F'{num}{tag}/Subhalo'].get('S_Length'), dtype = np.int64)
+            S_mass = np.array(hf[F'{num}{tag}/Particle'].get('S_Mass'), dtype = np.float64)
+            S_age = np.array(hf[F'{num}{tag}/Particle'].get('S_Age'), dtype = np.float64)*1e3
 
         begin = np.zeros(len(S_len), dtype = np.int64)
         end = np.zeros(len(S_len), dtype = np.int64)
