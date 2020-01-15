@@ -81,11 +81,23 @@ def extract_subfind_info(fname='data/flares.h5', inp='FLARES', overwrite=False, 
             if (fl._check_hdf5('%s/%s/Subhalo/Mhalo'%(halo,tag)) is False) |\
                      (overwrite == True):
 
-                _mhalo = E.read_array("SUBFIND", halodir, tag,
-                                     "/Subhalo/Mass",
-                                     numThreads=threads, noH=True)
+                 
+                _mhalo = E.read_array("SUBFIND", halodir, tag, 
+                                     "/Subhalo/Mass", 
+                                     numThreads=threads, noH=True) * 1e10
+    
+                fl.create_dataset(_mhalo[indices[halo][tag].astype(int)], 'Mhalo', 
+                                  '%s/%s/Subhalo/'%(halo,tag), overwrite=True)
+           
 
-                fl.create_dataset(_mhalo[indices[halo][tag].astype(int)], 'Mhalo',
+            if (fl._check_hdf5('%s/%s/Subhalo/Centrals'%(halo,tag)) is False) |\
+                    (overwrite == True):
+    
+                _centrals = (E.read_array("SUBFIND", halodir, tag, 
+                                         "/Subhalo/SubGroupNumber", 
+                                         numThreads=threads, noH=True) == 0)
+                
+                fl.create_dataset(_centrals[indices[halo][tag].astype(int)], 'Centrals', 
                                   '%s/%s/Subhalo/'%(halo,tag), overwrite=True)
 
 
@@ -110,16 +122,6 @@ def extract_subfind_info(fname='data/flares.h5', inp='FLARES', overwrite=False, 
             #     fl.write_data_h5py(fname, '%s/%s/Subhalo/'%(halo,tag), 'SFR',
             #                     data=sfr, overwrite=True)
 
-
-            # if (fl._check_hdf5(fname, 'centrals/%s/%s'%(halo,tag)) is False) |\
-            #         (overwrite == True):
-
-            #     centrals = (E.read_array("SUBFIND", halodir, tag,
-            #                              "/Subhalo/SubGroupNumber",
-            #                              numThreads=threads, noH=True) == 0)
-            #
-            #     fl.write_data_h5py(fname, '%s/%s/Subhalo/'%(halo,tag), 'SubGroupNumber',
-            #                     data=centrals, overwrite=True)
 
 
 
