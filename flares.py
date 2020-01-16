@@ -199,7 +199,7 @@ class flares:
             return False
 
         with h5py.File(self.fname, 'a') as h5file:
-            dset = h5file.create_group(obj_str)
+            dset = h5file.create_group(group_name)
             if desc is not None:
                 dset.attrs['Description'] = desc
 
