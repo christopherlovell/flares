@@ -174,7 +174,7 @@ class flares:
         else:
             pool = schwimmbad.MultiPool(processes=numThreads)
 
-        calc = partial(get_star_formation_time, redshift = z)
+        calc = partial(self.get_star_formation_time, redshift = z)
         Age = np.array(list(pool.map(calc,arr)))
 
         return Age
@@ -198,14 +198,14 @@ class flares:
             if verbose: print("`{}` group already created".format(group_name))
             return False
 
-        with h5py.File(self.fname, 'a') as h5file:
+        with h5py.File(self.fname, 'a', libver='latest', swmr=True) as h5file:
             dset = h5file.create_group(group_name)
             if desc is not None:
                 dset.attrs['Description'] = desc
 
 
     def create_header(self, hdr_name, value):
-        with h5py.File(self.fname, mode='a') as h5f:
+        with h5py.File(self.fname, mode='a', libver='latest', swmr=True) as h5f:
             if hdr_name not in list(h5f.keys()):
                 hdr = h5f.create_group(hdr_name)
                 for ii in value.keys():
@@ -227,7 +227,7 @@ class flares:
             return False
 
 
-        with h5py.File(self.fname, mode='a') as h5f:
+        with h5py.File(self.fname, mode='a', libver='latest', swmr=True) as h5f:
 
             if overwrite:
                 if verbose: print('Overwriting data in %s/%s'%(group,name))
@@ -341,20 +341,6 @@ def get_Z_LOS(s_cood, g_cood, g_mass, g_Z, g_sml, lkernel, kbins):
     return Z_los_SD
 
 
-
-def get_flares(ii):
-
-    sim = "./data/flares.hdf5"
-    num = str(ii)
-
-    if len(num) == 1:
-        num =  '00'+num+'/'
-    elif len(num) == 2:
-        num =  '0'+num+'/'
-
-    return sim, num
-
-
 def get_recent_SFR(tag, t = 100, inp = 'FLARES'):
 
     #t is time in Myr
@@ -377,9 +363,9 @@ def get_recent_SFR(tag, t = 100, inp = 'FLARES'):
 
         with h5py.File(sim, 'r') as hf:
 
-            S_len = np.array(hf[F'{num}{tag}/Subhalo'].get('S_Length'), dtype = np.int64)
-            S_mass = np.array(hf[F'{num}{tag}/Particle'].get('S_Mass'), dtype = np.float64)
-            S_age = np.array(hf[F'{num}{tag}/Particle'].get('S_Age'), dtype = np.float64)*1e3
+            S_len = np.array(hf[F'{tag}/Subhalo'].get('S_Length'), dtype = np.int64)
+            S_mass = np.array(hf[F'{tag}/Particle'].get('S_Mass'), dtype = np.float64)
+            S_age = np.array(hf[F'{tag}/Particle'].get('S_Age'), dtype = np.float64)*1e3
 
         begin = np.zeros(len(S_len), dtype = np.int64)
         end = np.zeros(len(S_len), dtype = np.int64)
@@ -397,7 +383,7 @@ def get_recent_SFR(tag, t = 100, inp = 'FLARES'):
 
                 SFR[jj] = np.sum(this_mass[ok])/1E6
 
-        fl.create_dataset(SFR, F"{num}/{tag}/Subhalo/SFR/SFR_{t}",
+        fl.create_dataset(SFR, F"{tag}/Subhalo/SFR/SFR_{t}",
         desc = F"SFR of the galaxy averaged over the last {t}Myr", unit = "Msun/yr")
 
     print (F"Saved the SFR averaged over {t}Myr to file")
