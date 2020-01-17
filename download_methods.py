@@ -135,34 +135,40 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     Selects only galaxies with more than 100 star+gas particles inside 30pkpc
 
     """
-    fl = flares.flares(fname = './data/',sim_type=inp)
+
     ## MPI parameters
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     size = comm.Get_size()
-    #print ("rank={}, size={}".format(rank, size))
-    print (F"Extracing information from {inp} {num} {tag}")
-    if inp == 'FLARES':
 
+    print (F"Extracing information from {inp} {num} {tag}")
+
+    if inp == 'FLARES':
+        sim_type = 'FLARES'
+        fl = flares.flares(fname = './data1/',sim_type=sim_type)
         num = str(num)
         if len(num) == 1:
             num =  '0'+num
         dir = fl.directory
-        sim = F"{dir}{num}/data/"
+        sim = F"{dir}GEAGLE_{num}/data/"
 
     elif inp == 'REF':
-
+        sim_type = 'PERIODIC'
+        fl = flares.flares(fname = './data1/',sim_type=sim_type)
         sim = fl.ref_directory
 
     elif inp == 'AGNdT9':
-
+        sim_type = 'PERIODIC'
+        fl = flares.flares(fname = './data1/',sim_type=sim_type)
         sim = fl.agn_directory
 
     else:
-
         ValueError("Type of input simulation not recognized")
 
+    if rank == 0:
+        print (F"Sim location: {sim}, tag: {tag}")
 
+    #Simulation properties
     z = E.read_header('SUBFIND', sim, tag, 'Redshift')
     a = E.read_header('SUBFIND', sim, tag, 'ExpansionFactor')
     mstar = E.read_array('SUBFIND', sim, tag, '/Subhalo/ApertureMeasurements/Mass/030kpc', numThreads=4, noH=True, physicalUnits=True)[:,4]*1e10
@@ -174,9 +180,9 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
         cop = E.read_array('SUBFIND', sim, tag, '/Subhalo/CentreOfPotential', noH=False, physicalUnits=False, numThreads=4) #units of cMpc/h
         cen, r, min_dist = fl.spherical_region(sim, tag)  #units of cMpc/h
         #indices = np.where(np.logical_and(mstar >= 10**8, np.sqrt(np.sum((cop-cen)**2, axis = 1))<=min_dist-2.) == True)[0]
-        indices = np.where(np.logical_and(mstar >= 10**7.2, np.sqrt(np.sum((cop-cen)**2, axis = 1))<=fl.radius) == True)[0]
+        indices = np.where(np.logical_and(mstar >= 10**7.4, np.sqrt(np.sum((cop-cen)**2, axis = 1))<=fl.radius) == True)[0]
     else:
-        indices = np.where(mstar >= 10**7.2)[0]
+        indices = np.where(mstar >= 10**7.4)[0]
 
     cop = E.read_array('SUBFIND', sim, tag, '/Subhalo/CentreOfPotential', noH=True, physicalUnits=True, numThreads=4)
     sfr_inst =  E.read_array('SUBFIND', sim, tag, '/Subhalo/ApertureMeasurements/SFR/030kpc', numThreads=4, noH=True, physicalUnits=True)
@@ -393,13 +399,12 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
             num =  '0'+num
         filename = 'data/FLARES_{}_sp_info.hdf5'.format(num)
         sim_type = 'FLARES'
-    elif inp == 'REF' or inp == 'AGNdT9':
 
+    elif inp == 'REF' or inp == 'AGNdT9':
         filename = F"data/EAGLE_{inp}_sp_info.hdf5"
         sim_type = 'PERIODIC'
 
     else:
-
         ValueError("Type of input simulation not recognized")
 
     ## MPI parameters
@@ -421,10 +426,10 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
         print("Wrting out required properties to hdf5")
 
         fl = flares.flares(fname = filename,sim_type = sim_type)
-        fl.create_grp(tag)
+        fl.create_group(tag)
 
-        fl.create_grp('{}/Subhalo'.format(tag))
-        fl.create_grp('{}/Particle'.format(tag))
+        fl.create_group('{}/Subhalo'.format(tag))
+        fl.create_group('{}/Particle'.format(tag))
 
 
         fl.create_dataset(indices, 'Indices', '{}/Subhalo'.format(tag), dtype = np.int64,
@@ -480,7 +485,6 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
 if __name__ == "__main__":
 
     ii, tag, inp = sys.argv[1], sys.argv[2], sys.argv[3]
-    print (ii, tag, inp)
 
     num = str(ii)
     tag = str(tag)
@@ -489,6 +493,5 @@ if __name__ == "__main__":
     if len(num) == 1:
         num =  '0'+num
 
-    #from save_as_hdf5 import save_to_hdf5
 
     save_to_hdf5(num, tag, inp=inp)
