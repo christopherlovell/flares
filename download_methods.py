@@ -7,7 +7,6 @@ from mpi4py import MPI
 
 import sys
 import eagle_IO.eagle_IO as E
-from hdf5_methods import HDF5_write
 import flares
 
 norm = np.linalg.norm
@@ -171,12 +170,20 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     #Simulation properties
     z = E.read_header('SUBFIND', sim, tag, 'Redshift')
     a = E.read_header('SUBFIND', sim, tag, 'ExpansionFactor')
+    
+    ## Galaxy global properties
+    M200 = E.read_array('SUBFIND', sim, tag, 'FOF/Group_M_Crit200', numThreads=4, noH=True, physicalUnits=True)*1e10
+    M500 = E.read_array('SUBFIND', sim, tag, '/FOF/Group_M_Crit500', numThreads=4, noH=True, physicalUnits=True)*1e10
+    M2500 = E.read_array('SUBFIND', sim, tag, '/FOF/Group_M_Crit2500', numThreads=4, noH=True, physicalUnits=True)*1e10
+    SubhaloMass = E.read_array('SUBFIND', sim, tag, '/Subhalo/Mass', numThreads=4, noH=True, physicalUnits=True)*1e10
     mstar = E.read_array('SUBFIND', sim, tag, '/Subhalo/ApertureMeasurements/Mass/030kpc', numThreads=4, noH=True, physicalUnits=True)[:,4]*1e10
     sgrpno = E.read_array('SUBFIND', sim, tag, '/Subhalo/SubGroupNumber', numThreads=4)
+    centrals = np.where(sgrpno == 0)[0]
     grpno = E.read_array('SUBFIND', sim, tag, '/Subhalo/GroupNumber', numThreads=4)
     vel = E.read_array('SUBFIND', sim, tag, '/Subhalo/Velocity', noH=True, physicalUnits=True, numThreads=4)
 
     if inp == 'FLARES':
+        ## Selecting the subhalos within our region
         cop = E.read_array('SUBFIND', sim, tag, '/Subhalo/CentreOfPotential', noH=False, physicalUnits=False, numThreads=4) #units of cMpc/h
         cen, r, min_dist = fl.spherical_region(sim, tag)  #units of cMpc/h
         #indices = np.where(np.logical_and(mstar >= 10**8, np.sqrt(np.sum((cop-cen)**2, axis = 1))<=min_dist-2.) == True)[0]
@@ -186,7 +193,8 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
 
     cop = E.read_array('SUBFIND', sim, tag, '/Subhalo/CentreOfPotential', noH=True, physicalUnits=True, numThreads=4)
     sfr_inst =  E.read_array('SUBFIND', sim, tag, '/Subhalo/ApertureMeasurements/SFR/030kpc', numThreads=4, noH=True, physicalUnits=True)
-
+    
+    ## Particle properties
     sp_cood = E.read_array('PARTDATA', sim, tag, '/PartType4/Coordinates', noH=True, physicalUnits=True, numThreads=4)
     gp_cood = E.read_array('PARTDATA', sim, tag, '/PartType0/Coordinates', noH=True, physicalUnits=True, numThreads=4)
     sp_sgrpn = E.read_array('PARTDATA', sim, tag, '/PartType4/SubGroupNumber', numThreads=4)
@@ -361,7 +369,9 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     g_sml = comm.gather(tg_sml, root=0)
     sage = comm.gather(tsage, root=0)
     Z_los = comm.gather(tZ_los, root=0)
-
+    
+    #For error-free on ranks!=0
+    ok_centrals = np.array([0])
 
     if rank == 0:
 
@@ -385,9 +395,11 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
 
         sage = np.concatenate(np.array(sage))
         Z_los = np.concatenate(np.array(Z_los))
+        
+        ok_centrals = np.intersect1d(centrals, indices)
 
 
-    return indices, mstar[indices], cop[indices]/a, vel[indices], sfr_inst[indices], grpno[indices], sgrpno[indices], snum, gnum, scood, gcood, smass, gmass, sZ, gZ, s_sml, g_sml, sage, Z_los
+    return indices, M200[ok_centrals], M500[ok_centrals], M2500[ok_centrals], SubhaloMass[indices], mstar[indices], cop[indices]/a, vel[indices], sfr_inst[indices], grpno[indices], sgrpno[indices], snum, gnum, scood, gcood, smass, gmass, sZ, gZ, s_sml, g_sml, sage, Z_los
 
 ##End of function `extract_info`
 
@@ -397,11 +409,11 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
     if inp == 'FLARES':
         if len(num) == 1:
             num =  '0'+num
-        filename = 'data/FLARES_{}_sp_info.hdf5'.format(num)
+        filename = 'data1/FLARES_{}_sp_info.hdf5'.format(num)
         sim_type = 'FLARES'
 
     elif inp == 'REF' or inp == 'AGNdT9':
-        filename = F"data/EAGLE_{inp}_sp_info.hdf5"
+        filename = F"data1/EAGLE_{inp}_sp_info.hdf5"
         sim_type = 'PERIODIC'
 
     else:
@@ -418,7 +430,7 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
         print ("#################   Number of processors being used is {}   #############".format(size))
 
 
-    indices, mstar, cop, vel, sfr_inst,  grpno, sgrpno, snum, gnum, scood, gcood, smass, gmass, sZ, gZ, s_sml, g_sml, sage, Z_los = extract_info(num, tag, kernel, inp)
+    indices, M200, M500, M2500, SubhaloMass, mstar, cop, vel, sfr_inst,  grpno, sgrpno, snum, gnum, scood, gcood, smass, gmass, sZ, gZ, s_sml, g_sml, sage, Z_los = extract_info(num, tag, kernel, inp)
 
 
     if rank == 0:
@@ -428,32 +440,40 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
         fl = flares.flares(fname = filename,sim_type = sim_type)
         fl.create_group(tag)
 
-        fl.create_group('{}/Subhalo'.format(tag))
+        fl.create_group('{}/Galaxy'.format(tag))
         fl.create_group('{}/Particle'.format(tag))
 
 
-        fl.create_dataset(indices, 'Indices', '{}/Subhalo'.format(tag), dtype = np.int64,
+        fl.create_dataset(indices, 'Indices', '{}/Galaxy'.format(tag), dtype = np.int64,
             desc = 'Index of the galaxy in the resimulation')
-
-
-        fl.create_dataset(mstar, 'Mstar_30', '{}/Subhalo'.format(tag),
+        
+        fl.create_dataset(M200, 'M200', '{}/Galaxy'.format(tag),
+            desc = 'M200 of the group', unit = 'Msun')
+        fl.create_dataset(M500, 'M500', '{}/Galaxy'.format(tag),
+            desc = 'M500 of the group', unit = 'Msun')
+        fl.create_dataset(M2500, 'M2500', '{}/Galaxy'.format(tag),
+            desc = 'M2500 of the group', unit = 'Msun')
+    
+        fl.create_dataset(SubhaloMass, 'SubhaloMass', '{}/Galaxy'.format(tag),
+            desc = 'Subhalo mass of the sub-group', unit = 'Msun')
+        fl.create_dataset(mstar, 'Mstar_30', '{}/Galaxy'.format(tag),
             desc = 'Stellar mass of the galaxy measured inside 30pkc aperture', unit = 'Msun')
-        fl.create_dataset(cop.T, 'COP', '{}/Subhalo'.format(tag),
+        fl.create_dataset(cop.T, 'COP', '{}/Galaxy'.format(tag),
             desc = 'Centre Of Potential of the galaxy', unit = 'cMpc')
-        fl.create_dataset(vel.T, 'Velocity', '{}/Subhalo'.format(tag),
+        fl.create_dataset(vel.T, 'Velocity', '{}/Galaxy'.format(tag),
             desc = 'Velocity of the galaxy', unit = 'km/s')
-        fl.create_dataset(sfr_inst, 'SFR_inst_30', '{}/Subhalo'.format(tag),
+        fl.create_dataset(sfr_inst, 'SFR_inst_30', '{}/Galaxy'.format(tag),
             desc = 'Instantaneous sfr of the galaxy measured inside 30pkc aperture', unit = 'Msun/yr')
-        fl.create_dataset(grpno, 'GroupNumber', '{}/Subhalo'.format(tag), dtype = np.int64,
+        fl.create_dataset(grpno, 'GroupNumber', '{}/Galaxy'.format(tag), dtype = np.int64,
             desc = 'Group Number of the galaxy')
-        fl.create_dataset(sgrpno, 'SubGroupNumber', '{}/Subhalo'.format(tag), dtype = np.int64,
+        fl.create_dataset(sgrpno, 'SubGroupNumber', '{}/Galaxy'.format(tag), dtype = np.int64,
             desc = 'Subgroup Number of the galaxy')
 
 
 
-        fl.create_dataset(snum, 'S_Length', '{}/Subhalo'.format(tag), dtype = np.int64,
+        fl.create_dataset(snum, 'S_Length', '{}/Galaxy'.format(tag), dtype = np.int64,
             desc = 'Number of star particles inside 30pkpc')
-        fl.create_dataset(gnum, 'G_Length', '{}/Subhalo'.format(tag), dtype = np.int64,
+        fl.create_dataset(gnum, 'G_Length', '{}/Galaxy'.format(tag), dtype = np.int64,
             desc = 'Number of gas particles inside 30pkpc')
 
         fl.create_dataset(scood.T, 'S_Coordinates', '{}/Particle'.format(tag),
