@@ -56,9 +56,9 @@ class flares:
             ## update with weights file location
             self.weights = '/cosma7/data/dp004/dc-love2/codes/ic_selection/weights_grid.txt'
         elif sim_type=="PERIODIC":
-            self.tags = np.array(['001_z015p132','002_z009p993','003_z008p988',
+            self.tags = np.array(['002_z009p993','003_z008p988',
                                   '004_z008p075','005_z007p050','006_z005p971',
-                                  '007_z005p487','008_z005p037','009_z004p485'])
+                                  '008_z005p037'])
         else:
             raise ValueError("sim_type not recognised")
 
@@ -198,14 +198,14 @@ class flares:
             if verbose: print("`{}` group already created".format(group_name))
             return False
 
-        with h5py.File(self.fname, 'a', libver='latest', swmr=True) as h5file:
+        with h5py.File(self.fname, 'a') as h5file:
             dset = h5file.create_group(group_name)
             if desc is not None:
                 dset.attrs['Description'] = desc
 
 
     def create_header(self, hdr_name, value):
-        with h5py.File(self.fname, mode='a', libver='latest', swmr=True) as h5f:
+        with h5py.File(self.fname, mode='a') as h5f:
             if hdr_name not in list(h5f.keys()):
                 hdr = h5f.create_group(hdr_name)
                 for ii in value.keys():
@@ -226,16 +226,16 @@ class flares:
             raise ValueError("Group does not exist")
             return False
 
+        try:
+            with h5py.File(self.fname, mode='a') as h5f:
 
-        with h5py.File(self.fname, mode='a', libver='latest', swmr=True) as h5f:
+                if overwrite:
+                    if verbose: print('Overwriting data in %s/%s'%(group,name))
+                    if self._check_hdf5("%s/%s"%(group,name)) is True:
+                        grp = h5f[group]
+                        del grp[name]
 
-            if overwrite:
-                if verbose: print('Overwriting data in %s/%s'%(group,name))
-                if self._check_hdf5("%s/%s"%(group,name)) is True:
-                    grp = h5f[group]
-                    del grp[name]
-
-            try:
+                
                 dset = h5f.create_dataset("%s/%s"%(group,name), shape=shape,
                                            maxshape=(None,) + shape[1:],
                                            dtype=dtype, compression=self.compression,
@@ -246,11 +246,11 @@ class flares:
                 if unit is not None:
                     dset.attrs['Units'] = unit
 
-            except Exception as e:
-                print("Oh! something went wrong while creating {}/{} or it already exists.\
-                       \nNo value was written into the dataset.".format(group, dataset))
-                print (e)
-                # sys.exit
+        except Exception as e:
+            print("Oh! something went wrong while creating {}/{} or it already exists.\
+                   \nNo value was written into the dataset.".format(group, name))
+            print (e)
+            # sys.exit
 
 
     def load_dataset(self,name,arr_type='Subhalo'):
@@ -346,24 +346,29 @@ def get_recent_SFR(tag, t = 100, inp = 'FLARES'):
     #t is time in Myr
     #SFR in Msun/yr
 
-    fl = flares('data/flares.hdf5',sim_type='FLARES')
-
     if inp == 'FLARES':
-        sim = "./data/flares.hdf5"
+        sim_type = inp
         n = 40
+        
     elif (inp == 'REF') or (inp == 'AGNdT9'):
         sim = F"./data/EAGLE_{inp}_sp_info.hdf5"
+        sim_type = 'PERIODIC'
         n = 1
-        num = ''
+        
     else:
         ValueError(F"No input option of {inp}")
-
+    
+    
     for ii in range(n):
-        if inp == 'FLARES': num = F'{fl.halos[ii]}/'
+        if inp == 'FLARES': 
+            num = str(ii)
+            if len(num) == 1:
+                num =  '0'+num
+            sim = F"./data/FLARES_{num}_sp_info.hdf5"
 
         with h5py.File(sim, 'r') as hf:
 
-            S_len = np.array(hf[F'{tag}/Subhalo'].get('S_Length'), dtype = np.int64)
+            S_len = np.array(hf[F'{tag}/Galaxy'].get('S_Length'), dtype = np.int64)
             S_mass = np.array(hf[F'{tag}/Particle'].get('S_Mass'), dtype = np.float64)
             S_age = np.array(hf[F'{tag}/Particle'].get('S_Age'), dtype = np.float64)*1e3
 
@@ -382,8 +387,9 @@ def get_recent_SFR(tag, t = 100, inp = 'FLARES'):
             if len(ok) > 0:
 
                 SFR[jj] = np.sum(this_mass[ok])/1E6
-
-        fl.create_dataset(SFR, F"{tag}/Subhalo/SFR/SFR_{t}",
+        
+        fl = flares(sim, sim_type)
+        fl.create_dataset(SFR, F"{tag}/Galaxy/SFR/SFR_{t}",
         desc = F"SFR of the galaxy averaged over the last {t}Myr", unit = "Msun/yr")
 
-    print (F"Saved the SFR averaged over {t}Myr to file")
+    print (F"Saved the SFR averaged over {t}Myr with tag {tag} for {inp} to file")
