@@ -4,9 +4,10 @@
 #SBATCH -p cosma6
 #SBATCH --job-name=get_FLARES
 #SBATCH --array=0-40%10
+##SBATCH --array=0-5%6
 #SBATCH -t 0-3:00
 #SBATCH --cpus-per-task=1
-#SBATCH --ntasks-per-node=4
+#SBATCH --ntasks-per-node=2
 #SBATCH -o logs/std_output.%J
 #SBATCH -e logs/std_error.%J
 
