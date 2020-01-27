@@ -18,7 +18,7 @@ module load gnu_comp/7.3.0 openmpi/3.0.1 hdf5/1.10.3 python/3.6.5
 
 #export PY_INSTALL=/cosma/home/dp004/dc-love2/.conda/envs/eagle/bin/python
 
-source /cosma7/data/dp004/dc-payy1/my_files/photometry/venv_photo/bin/activate
+source ./venv_fl/bin/activate
 
 ### For FLARES galaxies, change ntasks as required
 array=(010_z005p000 009_z006p000 008_z007p000 007_z008p000 006_z009p000 005_z010p000)
