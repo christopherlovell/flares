@@ -144,7 +144,7 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
 
     if inp == 'FLARES':
         sim_type = 'FLARES'
-        fl = flares.flares(fname = './data1/',sim_type=sim_type)
+        fl = flares.flares(fname = './data/',sim_type=sim_type)
         num = str(num)
         if len(num) == 1:
             num =  '0'+num
@@ -153,12 +153,12 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
 
     elif inp == 'REF':
         sim_type = 'PERIODIC'
-        fl = flares.flares(fname = './data1/',sim_type=sim_type)
+        fl = flares.flares(fname = './data/',sim_type=sim_type)
         sim = fl.ref_directory
 
     elif inp == 'AGNdT9':
         sim_type = 'PERIODIC'
-        fl = flares.flares(fname = './data1/',sim_type=sim_type)
+        fl = flares.flares(fname = './data/',sim_type=sim_type)
         sim = fl.agn_directory
 
     else:
@@ -409,11 +409,11 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
     if inp == 'FLARES':
         if len(num) == 1:
             num =  '0'+num
-        filename = 'data1/FLARES_{}_sp_info.hdf5'.format(num)
+        filename = 'data/FLARES_{}_sp_info.hdf5'.format(num)
         sim_type = 'FLARES'
 
     elif inp == 'REF' or inp == 'AGNdT9':
-        filename = F"data1/EAGLE_{inp}_sp_info.hdf5"
+        filename = F"data/EAGLE_{inp}_sp_info.hdf5"
         sim_type = 'PERIODIC'
 
     else:
