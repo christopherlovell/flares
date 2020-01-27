@@ -6,7 +6,10 @@ A python convenience module for working with FLARES resimulation data.
 
 - numpy
 - h5py
-- scipy (optional, for cutout)
+- scipy 
+- schwimmbad
+- [eagle_IO](https://github.com/flaresimulations/eagle_IO)
+- [SynthObs](https://github.com/stephenmwilkins/SynthObs) 
 
 ## Installation
 
@@ -24,12 +27,9 @@ in any other scripts to get the flares class and associated functionality.
 
 `flares.py` contains the `flares` class, which contains a lot of useful functionality for anlysing the resims. The most important information is the specified halos (`flares.halos`) and snapshots (`flares.tags`) you wish to analyse; these should be updated as new resims are completed.
 
-`download.py` fetches the specified arrays from all resims and puts them in a single hdf5 file in the `data/` folder. Similarly, `download_periodic.py` does this for any specified periodic volumes (Ref_100 and AGNdT9_50 by default). Simple update these scripts with the data you wish to download, specify if you wish to `overwrite` any existing data, and run directly:
+`download_methods.py` fetches the specified arrays from all resims and puts them in a single hdf5 file in the `data/` folder. Simple update these scripts with the data you wish to download, specify if you wish to `overwrite` any existing data. Run this ecript using the batchscript provided `download_particles.cosma.sh` for getting the particle data and run `download_subfind.py` just for the subfind data. Then run `create_UVgrid.cosma.sh` to get the value of kappa and use `download_phot.cosma.sh` to extract the photometry information.
 
-```
-python download.py
-python download_periodic.py
-```
+
 
 ### Example
 
@@ -37,10 +37,9 @@ Once the data is downloaded, you can use it as so,
 
 ```
 import flares
-fl = flares.flares()
+fl = flares.flares('./data/flares.hdf5', sim_type='FLARES')
 
-fname = fl.data+'/flares.h5'
-mstar = fl.load_dict_from_hdf5(fname, 'mstar')
+mstar = fl.load_dataset('Mstar_30', arr_type='Galaxy')
 
 halo = fl.halos[0]
 tag = fl.tags[0]

@@ -253,7 +253,7 @@ class flares:
             # sys.exit
 
 
-    def load_dataset(self,name,arr_type='Subhalo'):
+    def load_dataset(self,name,arr_type='Galaxy'):
 
         if self.sim_type == "FLARES":
             out = {halo: {tag: None for tag in self.tags} for halo in self.halos}
