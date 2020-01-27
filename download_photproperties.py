@@ -40,14 +40,14 @@ def lum_write_out(tag, kappa, filters = FLARE.filters.TH[:-1], inp = 'FLARES'):
             if len(num) == 1:
                 num =  '0'+num
 
-            filename = F"./data1/FLARES_{num}_sp_info.hdf5"
+            filename = F"./data/FLARES_{num}_sp_info.hdf5"
             sim_type = inp
             out_int = Mlumintr[kk]
             out_BC = MlumBC[kk]
             out_att = Mlumatt[kk]
 
         elif (inp == 'REF') or (inp == 'AGNdT9'):
-            filename = F"./data1/EAGLE_{inp}_sp_info.hdf5"
+            filename = F"./data/EAGLE_{inp}_sp_info.hdf5"
             sim_type = 'PERIODIC'
             out_int = Mlumintr
             out_BC = MlumBC
@@ -98,14 +98,14 @@ def flux_write_out(tag, kappa, filters = FLARE.filters.ACS, inp = 'FLARES'):
             if len(num) == 1:
                 num =  '0'+num
 
-            filename = F"./data1/FLARES_{num}_sp_info.hdf5"
+            filename = F"./data/FLARES_{num}_sp_info.hdf5"
             sim_type = inp
             out_stell = Mfluxstell[kk]
             out_int = Mfluxintr[kk]
             out_att = Mfluxatt[kk]
 
         elif (inp == 'REF') or (inp == 'AGNdT9'):
-            filename = F"./data1/EAGLE_{inp}_sp_info.hdf5"
+            filename = F"./data/EAGLE_{inp}_sp_info.hdf5"
             sim_type = 'PERIODIC'
             out_stell = Mfluxstell
             out_int = Mfluxintr
