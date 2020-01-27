@@ -13,7 +13,6 @@ import pandas as pd
 import sys
 import warnings
 warnings.filterwarnings("ignore", category=RuntimeWarning)
-
 from mpi4py import MPI
 from phot_modules import get_lum_all
 from scipy import interpolate
@@ -45,7 +44,7 @@ def get_chisquare(Mobs, phiobs, phiobserr, uplims, xdata, ydata):
 
 def read_data_and_fit(z):
 
-    data = np.genfromtxt(f"./Obs_data/uv_lum_Bouw15_z{z}.txt", delimiter=',', skip_header=1)
+    data = np.genfromtxt(f"./data/Obs_data/uv_lum_Bouw15_z{z}.txt", delimiter=',', skip_header=1)
     M, phi, phi_err, uplims = data[:,0], data[:,1], data[:,2], data[:,3]
 
     ok = np.where(M < -17.5)[0]
