@@ -370,7 +370,7 @@ def get_recent_SFR(tag, t = 100, inp = 'FLARES'):
 
             S_len = np.array(hf[F'{tag}/Galaxy'].get('S_Length'), dtype = np.int64)
             S_mass = np.array(hf[F'{tag}/Particle'].get('S_Mass'), dtype = np.float64)
-            S_age = np.array(hf[F'{tag}/Particle'].get('S_Age'), dtype = np.float64)*1e3
+            S_age = np.array(hf[F'{tag}/Particle'].get('S_Age'), dtype = np.float64)*1e3 #Age is in Gyr, so converting the array to Myr
 
         begin = np.zeros(len(S_len), dtype = np.int64)
         end = np.zeros(len(S_len), dtype = np.int64)
@@ -386,7 +386,7 @@ def get_recent_SFR(tag, t = 100, inp = 'FLARES'):
             ok = np.where(this_age <= t)[0]
             if len(ok) > 0:
 
-                SFR[jj] = np.sum(this_mass[ok])/1E6
+                SFR[jj] = np.sum(this_mass[ok])/(t*1e6)
         
         fl = flares(sim, sim_type)
         fl.create_dataset(SFR, F"{tag}/Galaxy/SFR/SFR_{t}",
