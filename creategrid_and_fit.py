@@ -4,7 +4,7 @@
     Uses MPI4PY to do the grid creation in parallel
     If input is 'Gridgen', first creates the grid and then fits,
     else looks for the grid output file and fits
-    After creation fitting is done against Bouwens et al. 2015
+    After creation fitting is done against Bouwens et al. 2015 at z = 5
 
 """
 
@@ -16,6 +16,8 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 from mpi4py import MPI
 from phot_modules import get_lum_all
 from scipy import interpolate
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 
 
@@ -44,7 +46,7 @@ def get_chisquare(Mobs, phiobs, phiobserr, uplims, xdata, ydata):
 
 def read_data_and_fit(z):
 
-    data = np.genfromtxt(f"./data/Obs_data/uv_lum_Bouw15_z{z}.txt", delimiter=',', skip_header=1)
+    data = np.genfromtxt(f"./Obs_data/uv_lum_Bouw15_z{z}.txt", delimiter=',', skip_header=1)
     M, phi, phi_err, uplims = data[:,0], data[:,1], data[:,2], data[:,3]
 
     ok = np.where(M < -17.5)[0]
@@ -76,15 +78,21 @@ def read_data_and_fit(z):
 
     for ii in range(len(Kappas)):
 
-        rchi = np.append(rchi, compare(M, phi, phi_err, uplims, bincen, phi_resim[ii]))
+        rchi = np.append(rchi, get_chisquare(M, phi, phi_err, uplims, bincen, phi_resim[ii]))
 
+    return rchi
 
 run_type = sys.argv[1]
 
 h = 0.6777
 sims = np.arange(0,40)
 
-#Fitting is done at z = 5 against Bouwens et al. 2015, hence z is chosen as 5 and tag = '010_z005p000'
+"""
+
+    Fitting is done at z = 5 against Bouwens et al. 2015, hence z is chosen as 5 and tag = '010_z005p000'
+
+"""
+
 z = 5
 tag = '010_z005p000'
 vol = (4/3)*np.pi*(14/h)**3
@@ -94,12 +102,13 @@ bincen = (bins[1:]+bins[:-1])/2.
 binwidth=bins[1:]-bins[:-1]
 
 # Range of Kappa explored
-Kappas = np.arange(0.01, 0.3, 0.0025)
+Kappas = np.arange(0.0, 0.3, 0.0025)
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
 
 if run_type == 'Gridgen':
-    comm = MPI.COMM_WORLD
-    rank = comm.Get_rank()
-    size = comm.Get_size()
 
     hist = np.zeros((len(Kappas),len(bincen)))
     err = np.zeros((len(Kappas),len(bincen)))
@@ -140,10 +149,10 @@ if rank == 0:
 
     axs.plot(Kappas, rchi)
     axs.scatter(Kappas[np.where(rchi==np.min(rchi))[0]], np.min(rchi), marker = 'x', color = 'red')
-    axs.text({Kappas[3*int(len(Kappas)/4)], int(np.max(rchi/2)), rF"$\kappa$ = {Kappas[np.where(rchi==np.min(rchi))[0]]}", fontsize = 15)
+    axs.text(Kappas[3*int(len(Kappas)/4)], int(np.max(rchi/2)), rF"$\kappa$ = {Kappas[np.where(rchi==np.min(rchi))[0]]}", fontsize = 15)
     axs.set_xlabel(r"$\kappa$'s", fontsize = 15)
     axs.set_ylabel(r"reduced $\chi^2$")
     axs.grid(True)
     fig.tight_layout()
     plt.savefig('kappa_vs_rchi.png')
-    plt.show()
+    plt.close()
