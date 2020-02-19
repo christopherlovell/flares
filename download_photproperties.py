@@ -18,7 +18,7 @@ def get_simtype(inp):
 
     elif inp == 'REF' or inp == 'AGNdT9':
         sim_type = 'PERIODIC'
-        
+
     return sim_type
 
 def lum_write_out(tag, kappa, filters = FLARE.filters.TH[:-1], inp = 'FLARES'):
@@ -58,24 +58,24 @@ def lum_write_out(tag, kappa, filters = FLARE.filters.TH[:-1], inp = 'FLARES'):
 
         fl = flares.flares(fname = filename, sim_type = sim_type)
 
-        fl.create_group(F"{tag}/Galaxy/BPASS/ChabrierIMF/Luminosity/Intrinsic")
-        fl.create_group(F"{tag}/Galaxy/BPASS/ChabrierIMF/Luminosity/No_ISM")
-        fl.create_group(F"{tag}/Galaxy/BPASS/ChabrierIMF/Luminosity/DustModelI")
+        fl.create_group(F"{tag}/Galaxy/BPASS_2.2.1/Chabrier300/Luminosity/Intrinsic")
+        fl.create_group(F"{tag}/Galaxy/BPASS_2.2.1/Chabrier300/Luminosity/No_ISM")
+        fl.create_group(F"{tag}/Galaxy/BPASS_2.2.1/Chabrier300/Luminosity/DustModelI")
 
         for ii, jj in enumerate(filters):
 
             filter = jj[8:]
 
             fl.create_dataset(values = out_int[:,ii], name = F"{filter}",
-            group = F"{tag}/Galaxy/BPASS/ChabrierIMF/Luminosity/Intrinsic",
+            group = F"{tag}/Galaxy/BPASS_2.2.1/Chabrier300/Luminosity/Intrinsic",
             desc = F'Intrinsic luminosity of the galaxy in the {filter} band', unit = "ergs/s/Hz")
 
             fl.create_dataset(values = out_BC[:,ii], name = F"{filter}",
-            group = F"{tag}/Galaxy/BPASS/ChabrierIMF/Luminosity/No_ISM",
+            group = F"{tag}/Galaxy/BPASS_2.2.1/Chabrier300/Luminosity/No_ISM",
             desc = F'Intrinsic (stellar + nebular) luminosity of the galaxy with BC attenuation in the {filter} band', unit = "ergs/s/Hz")
 
             fl.create_dataset(values = out_att[:,ii], name = F"{filter}",
-            group = F"{tag}/Galaxy/BPASS/ChabrierIMF/Luminosity/DustModelI",
+            group = F"{tag}/Galaxy/BPASS_2.2.1/Chabrier300/Luminosity/DustModelI",
             desc = F"Dust corrected luminosity (using ModelI) of the galaxy in the {filter} band", unit = "ergs/s/Hz")
 
 
@@ -115,9 +115,9 @@ def flux_write_out(tag, kappa, filters = FLARE.filters.ACS, inp = 'FLARES'):
             ValueError(F"No input option of {inp}")
 
         fl = flares.flares(fname = filename, sim_type = sim_type)
-        fl.create_group(F"{tag}/Galaxy/BPASS/ChabrierIMF/Flux/Intrinsic")
-        fl.create_group(F"{tag}/Galaxy/BPASS/ChabrierIMF/Flux/No_ISM")
-        fl.create_group(F"{tag}/Galaxy/BPASS/ChabrierIMF/Flux/DustModelI")
+        fl.create_group(F"{tag}/Galaxy/BPASS_2.2.1/Chabrier300/Flux/Intrinsic")
+        fl.create_group(F"{tag}/Galaxy/BPASS_2.2.1/Chabrier300/Flux/No_ISM")
+        fl.create_group(F"{tag}/Galaxy/BPASS_2.2.1/Chabrier300/Flux/DustModelI")
 
         for ii, jj in enumerate(filters):
 
@@ -125,20 +125,20 @@ def flux_write_out(tag, kappa, filters = FLARE.filters.ACS, inp = 'FLARES'):
             #of the instrument and `2` is the name of the filter
 
             fl.create_dataset(values = out_stell[:,ii], name = F"{filter[0]}/{filter[1]}/{filter[2]}",
-            group = F"{tag}/Galaxy/BPASS/ChabrierIMF/Flux/Intrinsic",
+            group = F"{tag}/Galaxy/BPASS_2.2.1/Chabrier300/Flux/Intrinsic",
             desc = F"Intrinsic flux of the galaxy in the {filter}", unit = "nJy")
 
             fl.create_dataset(values = out_int[:,ii], name = F"{filter[0]}/{filter[1]}/{filter[2]}",
-            group = F"{tag}/Galaxy/BPASS/ChabrierIMF/Flux/No_ISM",
+            group = F"{tag}/Galaxy/BPASS_2.2.1/Chabrier300/Flux/No_ISM",
             desc = F"Intrinsic (stellar + nebular) flux of the galaxy with BC attenuation in the {filter}", unit = "nJy")
 
             fl.create_dataset(values = out_att[:,ii], name = F"{filter[0]}/{filter[1]}/{filter[2]}",
-            group = F"{tag}/Galaxy/BPASS/ChabrierIMF/Flux/DustModelI",
+            group = F"{tag}/Galaxy/BPASS_2.2.1/Chabrier300/Flux/DustModelI",
             desc = F"Dust corrected flux (using ModelI) of the galaxy in the {filter}", unit = "nJy")
 
 
 if __name__ == "__main__":
-    
+
     """
 
     There is no parallel hdf5 write at the moment. It is ok for now, as they don't
@@ -153,12 +153,13 @@ if __name__ == "__main__":
     size = comm.Get_size()
 
     inp, prop = sys.argv[1], sys.argv[2]
-    kappa =  0.03
-    
+    kappa =  0.0875
+
     sim_type = get_simtype(inp)
     fl = flares.flares(fname = 'tmp', sim_type = sim_type)
     tags = fl.tags
-    
+
+
     for ii, tag in enumerate(tags):
         if (ii == rank) & (prop == 'Luminosity'):
             print(F'rank = {rank}, tag = {tag}')
