@@ -16,3 +16,5 @@ with h5py.File('./data/flares.hdf5','w') as outfile:
 
         for tag in fl.tags:
             infile.copy(tag,outfile[halo])
+
+        infile.close()
