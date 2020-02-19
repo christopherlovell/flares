@@ -39,21 +39,21 @@ def DTM_fit(Z, Age):
 
 
 def get_data(ii, tag, inp = 'FLARES'):
-    
+
     num = str(ii)
     if inp == 'FLARES':
         if len(num) == 1:
             num =  '0'+num
 
-        sim = F"./data1/FLARES_{num}_sp_info.hdf5"
+        sim = rF"./data/FLARES_{num}_sp_info.hdf5"
 
     else:
-        sim = F"./data1/EAGLE_{inp}_sp_info.hdf5"
+        sim = rF"./data/EAGLE_{inp}_sp_info.hdf5"
 
     with h5py.File(sim, 'r') as hf:
         S_len = np.array(hf[tag+'/Galaxy'].get('S_Length'), dtype = np.int64)
         G_len = np.array(hf[tag+'/Galaxy'].get('G_Length'), dtype = np.int64)
-        S_mass = np.array(hf[tag+'/Particle'].get('S_Mass'), dtype = np.float64)
+        S_mass = np.array(hf[tag+'/Particle'].get('S_MassInitial'), dtype = np.float64)
         S_Z = np.array(hf[tag+'/Particle'].get('S_Z'), dtype = np.float64)
         S_age = np.array(hf[tag+'/Particle'].get('S_Age'), dtype = np.float64)*1e3
         S_los = np.array(hf[tag+'/Particle'].get('S_los'), dtype = np.float64)
@@ -192,7 +192,7 @@ def get_lum(sim, kappa, tag, IMF = 'Chabrier_300', bins = np.arange(-24, -16, 0.
     if LF:
         tmp, edges = np.histogram(lum_to_M(Lums), bins = bins)
         return tmp
-    
+
     else:
         return Lums
 
