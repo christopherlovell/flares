@@ -3,7 +3,7 @@ import flares
 
 fl = flares.flares('./data/flares.hdf5',sim_type='FLARES')
 
-in_dir = '/cosma7/data/dp004/dc-payy1/my_files/flares_pipeline/data/'
+in_dir = './data/'
 
 with h5py.File('./data/flares.hdf5','w') as outfile:
 
