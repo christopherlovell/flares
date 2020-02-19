@@ -26,8 +26,8 @@ class flares:
         #Put down the sim root location here
         #self.directory = '/cosma7/data/dp004/dc-payy1/G-EAGLE/GEAGLE_'
         self.directory = '/cosma7/data/dp004/dc-payy1/G-EAGLE/'
-        self.ref_directory = '/cosma5/data/Eagle/ScienceRuns/Planck1/L0100N1504/PE/REFERENCE/data'
-        self.agn_directory = '/cosma5/data/Eagle/ScienceRuns/Planck1/L0050N0752/PE/S15_AGNdT9/data'
+        self.ref_directory = '/cosma7/data//Eagle/ScienceRuns/Planck1/L0100N1504/PE/REFERENCE/data'
+        self.agn_directory = '/cosma7/data/Eagle/ScienceRuns/Planck1/L0050N0752/PE/S15_AGNdT9/data'
 
         self.cosmo = cosmo
 
@@ -235,7 +235,7 @@ class flares:
                         grp = h5f[group]
                         del grp[name]
 
-                
+
                 dset = h5f.create_dataset("%s/%s"%(group,name), shape=shape,
                                            maxshape=(None,) + shape[1:],
                                            dtype=dtype, compression=self.compression,
@@ -349,18 +349,18 @@ def get_recent_SFR(tag, t = 100, inp = 'FLARES'):
     if inp == 'FLARES':
         sim_type = inp
         n = 40
-        
+
     elif (inp == 'REF') or (inp == 'AGNdT9'):
         sim = F"./data/EAGLE_{inp}_sp_info.hdf5"
         sim_type = 'PERIODIC'
         n = 1
-        
+
     else:
         ValueError(F"No input option of {inp}")
-    
-    
+
+
     for ii in range(n):
-        if inp == 'FLARES': 
+        if inp == 'FLARES':
             num = str(ii)
             if len(num) == 1:
                 num =  '0'+num
@@ -370,7 +370,8 @@ def get_recent_SFR(tag, t = 100, inp = 'FLARES'):
 
             S_len = np.array(hf[F'{tag}/Galaxy'].get('S_Length'), dtype = np.int64)
             S_mass = np.array(hf[F'{tag}/Particle'].get('S_Mass'), dtype = np.float64)
-            S_age = np.array(hf[F'{tag}/Particle'].get('S_Age'), dtype = np.float64)*1e3 #Age is in Gyr, so converting the array to Myr
+            S_age = np.array(hf[F'{tag}/Particle'].get('S_Age'), dtype = np.float64)*1e3 #Age is in Gyr,
+                                                                         #so converting the array to Myr
 
         begin = np.zeros(len(S_len), dtype = np.int64)
         end = np.zeros(len(S_len), dtype = np.int64)
@@ -387,7 +388,7 @@ def get_recent_SFR(tag, t = 100, inp = 'FLARES'):
             if len(ok) > 0:
 
                 SFR[jj] = np.sum(this_mass[ok])/(t*1e6)
-        
+
         fl = flares(sim, sim_type)
         fl.create_dataset(SFR, F"{tag}/Galaxy/SFR/SFR_{t}",
         desc = F"SFR of the galaxy averaged over the last {t}Myr", unit = "Msun/yr")
