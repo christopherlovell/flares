@@ -199,6 +199,7 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
 
     sp_mass = E.read_array('PARTDATA', sim, tag, '/PartType4/Mass', noH=True, physicalUnits=True, numThreads=4) * 1e10
     sp_mass_init = E.read_array('PARTDATA', sim, tag, '/PartType4/InitialMass', noH=True, physicalUnits=True, numThreads=4) * 1e10
+    sp_smooth_Z = E.read_array('PARTDATA', sim, tag, '/PartType4/SmoothedMetallicity', numThreads=4)
     sp_Z = E.read_array('PARTDATA', sim, tag, '/PartType4/Metallicity', numThreads=4)
     #sp_vel = E.read_array('PARTDATA', sim, tag, '/PartType4/Velocity', noH=True, physicalUnits=True, numThreads=4)
     sp_sl = E.read_array('PARTDATA', sim, tag, '/PartType4/SmoothingLength', noH=True, physicalUnits=True, numThreads=4)
@@ -208,6 +209,7 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     gp_sgrpn = E.read_array('PARTDATA', sim, tag, '/PartType0/SubGroupNumber', numThreads=4)
     gp_grpn = E.read_array('PARTDATA', sim, tag, '/PartType0/GroupNumber', numThreads=4)
     gp_mass = E.read_array('PARTDATA', sim, tag, '/PartType0/Mass', noH=True, physicalUnits=True, numThreads=4) * 1e10
+    gp_smooth_Z = E.read_array('PARTDATA', sim, tag, '/PartType0/SmoothedMetallicity', numThreads=4)
     gp_Z = E.read_array('PARTDATA', sim, tag, '/PartType0/Metallicity', numThreads=4)
     #gp_vel = E.read_array('PARTDATA', sim, tag, '/PartType0/Velocity', noH=True, physicalUnits=True, numThreads=4)
     gp_sl = E.read_array('PARTDATA', sim, tag, '/PartType0/SmoothingLength', noH=True, physicalUnits=True, numThreads=4)
@@ -248,7 +250,9 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     tgmass = np.empty(gn)
 
     tsZ = np.empty(sn)
+    tsZ_smooth = np.empty(sn)
     tgZ = np.empty(gn)
+    tgZ_smooth = np.empty(gn)
 
     tscood = np.empty((sn,3))
     tgcood = np.empty((gn,3))
@@ -283,7 +287,7 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
             #to make use of it. At the moment everything along the z-axis
 
             start = timeit.default_timer()
-            Z_los_SD = flares.get_Z_LOS(sp_cood[s_ok], gp_cood[g_ok], gp_mass[g_ok], gp_Z[g_ok], gp_sl[g_ok], lkernel, kbins)
+            Z_los_SD = flares.get_Z_LOS(sp_cood[s_ok], gp_cood[g_ok], gp_mass[g_ok], gp_smooth_Z[g_ok], gp_sl[g_ok], lkernel, kbins)
             stop = timeit.default_timer()
             print ("Calculating Z_los took {}s".format(np.round(stop - start,6)))
 
@@ -306,7 +310,9 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
             tgmass[gbeg:gend] = gp_mass[g_ok]
 
             tsZ[sbeg:send] = sp_Z[s_ok]
+            tsZ_smooth[sbeg:send] = sp_smooth_Z[s_ok]
             tgZ[gbeg:gend] = gp_Z[g_ok]
+            tgZ_smooth[gbeg:gend] = gp_smooth_Z[g_ok]
 
             ts_sml[sbeg:send] = sp_sl[s_ok]
             tg_sml[gbeg:gend] = gp_sl[g_ok]
@@ -323,7 +329,7 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
             ind = np.append(ind, ii)
 
     ##End of loop ii, jj##
-    del sp_sgrpn, sp_grpn, sp_mass, sp_mass_init, sp_Z, sp_cood, sp_sl, sp_ft, gp_sgrpn, gp_grpn, gp_mass, gp_Z, gp_cood, gp_sl
+    del sp_sgrpn, sp_grpn, sp_mass, sp_mass_init, sp_Z, sp_smooth_Z, sp_cood, sp_sl, sp_ft, gp_sgrpn, gp_grpn, gp_mass, gp_Z, gp_smooth_Z, gp_cood, gp_sl
 
     gc.collect()
 
@@ -344,7 +350,9 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     tgmass = tgmass[:tgtot]
 
     tsZ = tsZ[:tstot]
+    tsZ_smooth = tsZ_smooth[:tstot]
     tgZ = tgZ[:tgtot]
+    tgZ_smooth = tgZ_smooth[:tgtot]
 
     ts_sml = ts_sml[:tstot]
     tg_sml = tg_sml[:tgtot]
@@ -368,7 +376,9 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     smass_init = comm.gather(tsmass_init, root=0)
     gmass = comm.gather(tgmass, root=0)
     sZ = comm.gather(tsZ, root=0)
+    sZ_smooth = comm.gather(tsZ_smooth, root=0)
     gZ = comm.gather(tgZ, root=0)
+    gZ_smooth = comm.gather(tgZ_smooth, root=0)
     s_sml = comm.gather(ts_sml, root=0)
     g_sml = comm.gather(tg_sml, root=0)
     sage = comm.gather(tsage, root=0)
@@ -391,7 +401,9 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
         gmass = np.concatenate(np.array(gmass))
 
         sZ = np.concatenate(np.array(sZ))
+        sZ_smooth = np.concatenate(np.array(sZ_smooth))
         gZ = np.concatenate(np.array(gZ))
+        gZ_smooth = np.concatenate(np.array(gZ_smooth))
 
         s_sml = np.concatenate(np.array(s_sml))
         g_sml = np.concatenate(np.array(g_sml))
@@ -402,7 +414,7 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
         ok_centrals = grpno[indices] - 1
 
 
-    return indices, M200[ok_centrals], M500[ok_centrals], M2500[ok_centrals], SubhaloMass[indices], mstar[indices], cop[indices]/a, vel[indices], sfr_inst[indices], grpno[indices], sgrpno[indices], snum, gnum, scood, gcood, smass, smass_init, gmass, sZ, gZ, s_sml, g_sml, sage, Z_los
+    return indices, M200[ok_centrals], M500[ok_centrals], M2500[ok_centrals], SubhaloMass[indices], mstar[indices], cop[indices]/a, vel[indices], sfr_inst[indices], grpno[indices], sgrpno[indices], snum, gnum, scood, gcood, smass, smass_init, gmass, sZ, sZ_smooth, gZ, gZ_smooth, s_sml, g_sml, sage, Z_los
 
 ##End of function `extract_info`
 
@@ -433,7 +445,7 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
         print ("#################   Number of processors being used is {}   #############".format(size))
 
 
-    indices, M200, M500, M2500, SubhaloMass, mstar, cop, vel, sfr_inst,  grpno, sgrpno, snum, gnum, scood, gcood, smass, smass_init, gmass, sZ, gZ, s_sml, g_sml, sage, Z_los = extract_info(num, tag, kernel, inp)
+    indices, M200, M500, M2500, SubhaloMass, mstar, cop, vel, sfr_inst,  grpno, sgrpno, snum, gnum, scood, gcood, smass, smass_init, gmass, sZ, sZ_smooth, gZ, gZ_smooth, s_sml, g_sml, sage, Z_los = extract_info(num, tag, kernel, inp)
 
 
     if rank == 0:
@@ -493,8 +505,12 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
 
         fl.create_dataset(sZ, 'S_Z', '{}/Particle'.format(tag),
             desc = 'Star particle metallicity', unit = 'No units')
+        fl.create_dataset(sZ_smooth, 'S_Z_smooth', '{}/Particle'.format(tag),
+            desc = 'Star particle smoothed metallicity', unit = 'No units')
         fl.create_dataset(gZ, 'G_Z', '{}/Particle'.format(tag),
             desc = 'Gas particle metallicity', unit = 'No units')
+        fl.create_dataset(gZ_smooth, 'G_Z_smooth', '{}/Particle'.format(tag),
+            desc = 'Gas particle smoothed metallicity', unit = 'No units')
 
         fl.create_dataset(s_sml, 'S_sml', '{}/Particle'.format(tag),
             desc = 'Star particle smoothing length', unit = 'pMpc')
