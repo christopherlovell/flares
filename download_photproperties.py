@@ -4,6 +4,8 @@ from mpi4py import MPI
 import h5py
 import re
 import sys
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
 import flares
 from flares import get_recent_SFR
 from phot_modules import get_lum_all
@@ -153,12 +155,14 @@ if __name__ == "__main__":
     size = comm.Get_size()
 
     inp, prop = sys.argv[1], sys.argv[2]
-    kappa =  0.0875
+    kappa =  0.0775
 
-    sim_type = get_simtype(inp)
-    fl = flares.flares(fname = 'tmp', sim_type = sim_type)
-    tags = fl.tags
-
+    inps = ['FLARES', 'REF', 'AGNdT9']
+    for inp in inps:
+        sim_type = get_simtype(inp)
+        fl = flares.flares(fname = 'tmp', sim_type = sim_type)
+        tags = fl.tags
+        print (inp)
 
     for ii, tag in enumerate(tags):
         if (ii == rank) & (prop == 'Luminosity'):
