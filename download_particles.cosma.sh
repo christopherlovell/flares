@@ -32,7 +32,7 @@ mpiexec -n 16 python3 download_methods.py $SLURM_ARRAY_TASK_ID ${array[5]} FLARE
 
 ### For PERIODIC boxes: REF and AGNdT9, change ntasks and time as required (REF at z=5 required ~1.45hrs)
 # array=(002_z009p993 003_z008p988 004_z008p075 005_z007p050 006_z005p971 008_z005p037)
-# mpiexec -n 16 python3 download_methods.py $SLURM_ARRAY_TASK_ID ${array[$SLURM_ARRAY_TASK_ID]} REF
+# mpiexec -n 20 python3 download_methods.py $SLURM_ARRAY_TASK_ID ${array[$SLURM_ARRAY_TASK_ID]} REF
 
 
 echo "Job done, info follows..."
