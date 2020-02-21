@@ -102,7 +102,7 @@ bincen = (bins[1:]+bins[:-1])/2.
 binwidth=bins[1:]-bins[:-1]
 
 # Range of Kappa explored
-Kappas = np.arange(0.0, 0.3, 0.0025)
+Kappas = np.arange(0.0, 0.2, 0.0025)
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
