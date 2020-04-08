@@ -30,6 +30,18 @@
   <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
   <link rel="manifest" href="images/site.webmanifest">
 
+  <!-- Javascript
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']]
+      }
+    };
+  </script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
 </head>
 <body>
 
@@ -48,26 +60,29 @@
       <a class="button" href="publications.html">Publications</a>
       <a class="button" href="visualisation.html">Visualisation</a>
       <a class="button" href="data.html">Data</a>
-      <a class="button" href="people.html">People</a>      
+      <a class="button" href="people.html">People</a> 
       <a class="button" href="contact.html">Contact</a>
     </div>
     
     <div class="row", style="margin-top:5%">
       <div class="six columns">
-          <p>The FLARES simulations...
-          
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin placerat velit vitae consectetur aliquet. Duis non justo eu neque rutrum dapibus in id ante. Nunc bibendum dui ut erat rutrum venenatis. Suspendisse quis quam non ante aliquam cursus. Ut enim quam, auctor id risus ut, feugiat auctor orci. Aliquam gravida molestie pharetra. Suspendisse erat eros, bibendum et sapien sit amet, vehicula dignissim nisi.
-
-Duis vel velit iaculis, vulputate risus eget, dictum ipsum. Praesent non libero a sapien rutrum bibendum porta et diam. In sollicitudin, dolor eget laoreet tempus, mauris lorem varius mi, a tempus mauris ipsum ac arcu. Nam maximus varius facilisis. Vivamus condimentum vestibulum tortor, ut pretium nibh interdum at. Interdum et malesuada fames ac ante ipsum primis in faucibus. Suspendisse vitae vulputate augue. Nulla consequat volutpat risus vel vehicula. Donec ac magna posuere, vehicula ipsum eu, imperdiet lectus.
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc ac ipsum vitae erat tempus sodales eu in turpis. Morbi scelerisque nibh lacus, ut convallis velit porta ut. Vivamus vel luctus nisl. Integer id venenatis sapien. Donec sit amet odio a sem aliquam tristique in eu massa. Quisque eget libero lobortis, consectetur orci vel, rutrum nibh. Nunc congue, erat vel efficitur scelerisque, orci arcu posuere augue, vitae ultrices enim arcu ac eros. Vestibulum fringilla sagittis feugiat. Proin lacus arcu, aliquet non maximus eu, semper ut mi. Sed at suscipit dolor. Duis odio ligula, congue sed ipsum quis, iaculis fringilla orci. Fusce sagittis magna vel felis mattis, at dapibus purus ullamcorper. Donec sed pretium mi. Maecenas aliquam vulputate ipsum.
-
-Fusce ac finibus risus. Integer nec bibendum libero, nec tempus est. Vestibulum dui justo, condimentum id libero non, luctus gravida risus. Vestibulum faucibus quis est non hendrerit. Fusce consectetur et ligula a blandit. Phasellus rutrum posuere risus. Vestibulum nisi ante, cursus at molestie in, volutpat non tortor. Sed eget mi nec enim vestibulum blandit non non mauris. Maecenas interdum nibh purus, sed mattis velit ultricies quis. Fusce varius risus placerat pretium iaculis. Sed scelerisque ex augue, a finibus ligula semper et. Maecenas ipsum nisi, posuere at lacinia et, pretium tincidunt mi. </p>
+          <p>
+          The FLARE simulations are a suite of high-resolution hydrodynamic simulations of galaxy formation and evolution using the <a href="http://icc.dur.ac.uk/Eagle/" target="_blank">EAGLE</a> physics.
+            The suite consists of a series of zoom resimulations of spherical regions selected at $z = 5$ from a $(3.2 \, \mathrm{Gpc})^3$ parent dark matter-only volume.
+            We select a range of overdensities in order to study the environmental effect on high-redshift galaxy evolution.
+            We also combine these resimulations in order to produce composite distribution functions, signficantly extending the dynamic range of the model over smaller volume, periodic simulations.
+          </p>
+          <p>These simulations provide a valuable resource for studying galaxy evolution over the first 2 billion years of the Universe's evolution. 
+          We are working on predictions for a number of upcoming space-based observatories, such as <i>JWST</i>, <i>WFIRST</i> and <i> Euclid</i>.
+          The latter two are of particular importance due to their wide-field capabilities, probing extreme environments at the extreme of the overdensity distribution.
+          FLARES presents a unique resource for generating predictions for such surveys using the latest high-resolution hydrodynamic models.
+          </p>
+          <p>
+          If you would like further scientific information please refer to the <a href="publications.html">publications</a>. For all other queries you can <a href="contact.html">contact us</a> directly using the form.
+          </p>
       </div>
       <div class="six columns" style="text-align:center">
         <img src="images/G-EAGLE_00_009_z006p000.png" alt="flares_region_00", width="500" height="500">
-
       </div>
     </div>
 
