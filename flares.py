@@ -4,6 +4,7 @@ from astropy.cosmology import Planck13 as cosmo
 from astropy import units as u
 from scipy.optimize import curve_fit
 from scipy.spatial import ConvexHull
+import scipy.stats
 import h5py
 import schwimmbad
 from functools import partial
@@ -102,6 +103,13 @@ class flares:
         hist, dummy = np.histogram(np.log10(mstar), bins = massBinLimits)
         hist = np.float64(hist)
         phi = (hist / volume) / (massBinLimits[1] - massBinLimits[0])
+
+        # p = 0.95 
+        # phi_sigma = np.array([scipy.stats.chi2.ppf((1.-p)/2.,2*hist)/2.,
+        #                       scipy.stats.chi2.ppf(p+(1.-p)/2.,2*(hist+1))/2.])
+
+        # phi_sigma = (phi_sigma / volume) / (massBinLimits[1] - massBinLimits[0])
+
         phi_sigma = (np.sqrt(hist) / volume) /\
                     (massBinLimits[1] - massBinLimits[0]) # Poisson errors
 
@@ -134,24 +142,26 @@ class flares:
             p = phi
             ps = phi_sigma
 
-            mask = (ps <= p)
+            mask = (ps == p)
 
             err_up = np.abs(np.log10(p) - np.log10(p + ps))
             err_lo = np.abs(np.log10(p) - np.log10(p - ps))
+
+            err_lo[mask] = 100
 
             return err_up, err_lo, mask
 
 
         err_up, err_lo, mask = yerr(phi,phi_sigma)
-
-        err_lo[~mask] = 0.5
-        err_up[~mask] = 0.5
+        
+        # err_lo = np.log10(phi) - np.log10(phi - phi_sigma[0])
+        # err_up = np.log10(phi) - np.log10(phi + phi_sigma[1])
 
         ax.errorbar(np.log10(massBins[phi > 0.]),
                 np.log10(phi[phi > 0.]),
-                yerr=[err_up[phi > 0.],
-                      err_lo[phi > 0.]],
-                uplims=(~mask[phi > 0.]),
+                yerr=[err_lo[phi > 0.],
+                      err_up[phi > 0.]],
+                #uplims=(mask[phi > 0.]),
                 label=label, c=color, alpha=alpha, **kwargs)
 
 
@@ -267,6 +277,7 @@ class flares:
 
             with h5py.File(self.fname,'r') as f:
                 for tag in self.tags:
+                    print('%s/%s/%s'%(tag,arr_type,name))
                     out[tag] = f['%s/%s/%s'%(tag,arr_type,name)][:]
 
         return out
