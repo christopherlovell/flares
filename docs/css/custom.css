@@ -12,3 +12,7 @@ a {
 }
 a:hover {
   color: #4B0082; }
+
+a.header {
+    color: #222
+}
