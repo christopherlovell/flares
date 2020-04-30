@@ -1,6 +1,6 @@
 # First Light And Reionisation Epoch Simulations (FLARES)
 
-A python convenience module for working with FLARES resimulation data.
+A python convenience module for working with FLARES data.
 
 ## Requirements
 
@@ -22,6 +22,15 @@ You can then just run
     import flares
 
 in any other scripts to get the flares class and associated functionality.
+
+## Set up and data location
+
+The FLARES data on COSMA are located here:
+
+    /cosma7/data/dp004/FLARES/FLARES-1
+
+You may need to update this location in `flares.py#L29` by changing the `self.directory` string.
+
 
 ## Tutorial
 
