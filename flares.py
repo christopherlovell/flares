@@ -436,14 +436,14 @@ class flares:
         subgrp_ids = E.read_array('PARTDATA', sim, snapshot, 'PartType' + str(part_type) + '/SubGroupNumber',
                                   numThreads=8)
 
-        # Ensure no subgroup ID exceeds 99999
-        assert subgrp_ids.max() < 99999, "Found too many subgroups, need to increase subgroup format string above %05d"
-
         # Remove particles not associated to a subgroup (subgroupnumber == 2**30 == 1073741824)
         okinds = subgrp_ids != 1073741824
         group_part_ids = group_part_ids[okinds]
         grp_ids = grp_ids[okinds]
         subgrp_ids = subgrp_ids[okinds]
+
+        # Ensure no subgroup ID exceeds 99999
+        assert subgrp_ids.max() < 99999, "Found too many subgroups, need to increase subgroup format string above %05d"
 
         # Convert IDs to float(groupNumber.SubGroupNumber) format, i.e. group 1 subgroup 11 = 1.00011
         halo_ids = np.zeros(grp_ids.size, dtype=float)
