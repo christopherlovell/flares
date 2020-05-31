@@ -4,6 +4,7 @@ from astropy.cosmology import Planck13 as cosmo
 from astropy import units as u
 from scipy.optimize import curve_fit
 from scipy.spatial import ConvexHull
+import scipy.stats
 import h5py
 import schwimmbad
 from functools import partial
@@ -102,6 +103,13 @@ class flares:
         hist, dummy = np.histogram(np.log10(mstar), bins = massBinLimits)
         hist = np.float64(hist)
         phi = (hist / volume) / (massBinLimits[1] - massBinLimits[0])
+
+        # p = 0.95 
+        # phi_sigma = np.array([scipy.stats.chi2.ppf((1.-p)/2.,2*hist)/2.,
+        #                       scipy.stats.chi2.ppf(p+(1.-p)/2.,2*(hist+1))/2.])
+
+        # phi_sigma = (phi_sigma / volume) / (massBinLimits[1] - massBinLimits[0])
+
         phi_sigma = (np.sqrt(hist) / volume) /\
                     (massBinLimits[1] - massBinLimits[0]) # Poisson errors
 
@@ -134,24 +142,26 @@ class flares:
             p = phi
             ps = phi_sigma
 
-            mask = (ps <= p)
+            mask = (ps == p)
 
             err_up = np.abs(np.log10(p) - np.log10(p + ps))
             err_lo = np.abs(np.log10(p) - np.log10(p - ps))
+
+            err_lo[mask] = 100
 
             return err_up, err_lo, mask
 
 
         err_up, err_lo, mask = yerr(phi,phi_sigma)
-
-        err_lo[~mask] = 0.5
-        err_up[~mask] = 0.5
+        
+        # err_lo = np.log10(phi) - np.log10(phi - phi_sigma[0])
+        # err_up = np.log10(phi) - np.log10(phi + phi_sigma[1])
 
         ax.errorbar(np.log10(massBins[phi > 0.]),
                 np.log10(phi[phi > 0.]),
-                yerr=[err_up[phi > 0.],
-                      err_lo[phi > 0.]],
-                uplims=(~mask[phi > 0.]),
+                yerr=[err_lo[phi > 0.],
+                      err_up[phi > 0.]],
+                #uplims=(mask[phi > 0.]),
                 label=label, c=color, alpha=alpha, **kwargs)
 
 
@@ -267,6 +277,7 @@ class flares:
 
             with h5py.File(self.fname,'r') as f:
                 for tag in self.tags:
+                    print('%s/%s/%s'%(tag,arr_type,name))
                     out[tag] = f['%s/%s/%s'%(tag,arr_type,name)][:]
 
         return out
@@ -293,7 +304,200 @@ class flares:
             dset.attrs['Description'] = desc
             #dset.close()
 
+    @staticmethod
+    def _get_part_inds(halo_ids, part_ids, group_part_ids, sorted):
+        """ A function to find the indexes and halo IDs associated to particles/a particle producing an array for each
 
+        :param halo_ids:
+        :param part_ids:
+        :param group_part_ids:
+        :return:
+        """
+
+        # Sort particle IDs if required and store an unsorted version in an array
+        if sorted:
+            part_ids = np.sort(part_ids)
+        unsort_part_ids = np.copy(part_ids)
+
+        # Get the indices that would sort the array (if the array is sorted this is just a range form 0-Npart)
+        if sorted:
+            sinds = np.arange(part_ids.size)
+        else:
+            sinds = np.argsort(part_ids)
+            part_ids = part_ids[sinds]
+
+        # Get the index of particles in the snapshot array from the in particles in a group array
+        sorted_index = np.searchsorted(part_ids, group_part_ids)  # find the indices that would sort the array
+        yindex = np.take(sinds, sorted_index, mode="raise")  # take the indices at the indices found above
+        mask = unsort_part_ids[yindex] != group_part_ids  # define the mask based on these particles
+        result = np.ma.array(yindex, mask=mask)  # create a mask array
+
+        # Apply the mask to the id arrays to get halo ids and the particle indices
+        part_groups = halo_ids[np.logical_not(result.mask)]  # halo ids
+        parts_in_groups = result.data[np.logical_not(result.mask)]  # particle indices
+
+        return parts_in_groups, part_groups
+
+    def get_group_part_inds(self, sim, snapshot, part_type, all_parts=False, sorted=False):
+        ''' A function to efficiently produce a dictionary of particle indexes from EAGLE particle data arrays
+            for SUBFIND groups.
+
+        :param sim:        Path to the snapshot file [str]
+        :param snapshot:   Snapshot identifier [str]
+        :param part_type:  The integer representing the particle type
+                           (0, 1, 4, 5: gas, dark matter, stars, black hole) [int]
+        :param all_parts:  Flag for whether to use all particles (SNAP group)
+                           or only particles in halos (PARTDATA group)  [bool]
+        :param sorted:     Flag for whether to produce indices in a sorted particle ID array
+                           or unsorted (order they are stored in) [bool]
+        :return:
+        '''
+
+        # Get the particle IDs for this particle type using eagle_IO
+        if all_parts:
+
+            # Get all particles in the simulation
+            part_ids = E.read_array('SNAP', sim, snapshot, 'PartType' + str(part_type) + '/ParticleIDs',
+                                    numThreads=8)
+
+            # Get only those particles in a halo
+            group_part_ids = E.read_array('PARTDATA', sim, snapshot, 'PartType' + str(part_type) + '/ParticleIDs',
+                                          numThreads=8)
+
+        else:
+
+            # Get only those particles in a halo
+            part_ids = E.read_array('PARTDATA', sim, snapshot, 'PartType' + str(part_type) + '/ParticleIDs',
+                                    numThreads=8)
+
+            # A copy of this array is needed for the extraction method
+            group_part_ids = np.copy(part_ids)
+
+        # Extract the group ID and subgroup ID each particle is contained within
+        grp_ids = E.read_array('PARTDATA', sim, snapshot, 'PartType' + str(part_type) + '/GroupNumber',
+                               numThreads=8)
+
+        # Remove particles in unbound groups (groupnumber < 0)
+        okinds = grp_ids < 0
+        group_part_ids = group_part_ids[okinds]
+        grp_ids = grp_ids[okinds]
+
+        parts_in_groups, part_groups = self._get_part_inds(grp_ids, part_ids, group_part_ids, sorted)
+
+        # Produce a dictionary containing the index of particles in each halo
+        halo_part_inds = {}
+        for ind, grp in zip(parts_in_groups, part_groups):
+            halo_part_inds.setdefault(grp, set()).update({ind})
+
+        # Now the dictionary is fully populated convert values from sets to arrays for indexing
+        for key, val in halo_part_inds.items():
+            halo_part_inds[key] = np.array(list(val))
+
+        return halo_part_inds
+
+    def get_subgroup_part_inds(self, sim, snapshot, part_type, all_parts=False, sorted=False):
+        ''' A function to efficiently produce a dictionary of particle indexes from EAGLE particle data arrays
+            for SUBFIND subgroups.
+
+        :param sim:        Path to the snapshot file [str]
+        :param snapshot:   Snapshot identifier [str]
+        :param part_type:  The integer representing the particle type
+                           (0, 1, 4, 5: gas, dark matter, stars, black hole) [int]
+        :param all_parts:  Flag for whether to use all particles (SNAP group)
+                           or only particles in halos (PARTDATA group)  [bool]
+        :param sorted:     Flag for whether to produce indices in a sorted particle ID array
+                           or unsorted (order they are stored in) [bool]
+        :return:
+        '''
+
+        # Get the particle IDs for this particle type using eagle_IO
+        if all_parts:
+
+            # Get all particles in the simulation
+            part_ids = E.read_array('SNAP', sim, snapshot, 'PartType' + str(part_type) + '/ParticleIDs',
+                                    numThreads=8)
+
+            # Get only those particles in a halo
+            group_part_ids = E.read_array('PARTDATA', sim, snapshot, 'PartType' + str(part_type) + '/ParticleIDs',
+                                          numThreads=8)
+
+        else:
+
+            # Get only those particles in a halo
+            part_ids = E.read_array('PARTDATA', sim, snapshot, 'PartType' + str(part_type) + '/ParticleIDs',
+                                    numThreads=8)
+
+            # A copy of this array is needed for the extraction method
+            group_part_ids = np.copy(part_ids)
+
+        # Extract the group ID and subgroup ID each particle is contained within
+        grp_ids = E.read_array('PARTDATA', sim, snapshot, 'PartType' + str(part_type) + '/GroupNumber',
+                               numThreads=8)
+        subgrp_ids = E.read_array('PARTDATA', sim, snapshot, 'PartType' + str(part_type) + '/SubGroupNumber',
+                                  numThreads=8)
+
+        # Remove particles not associated to a subgroup (subgroupnumber == 2**30 == 1073741824)
+        okinds = subgrp_ids != 1073741824
+        group_part_ids = group_part_ids[okinds]
+        grp_ids = grp_ids[okinds]
+        subgrp_ids = subgrp_ids[okinds]
+
+        # Ensure no subgroup ID exceeds 99999
+        assert subgrp_ids.max() < 99999, "Found too many subgroups, need to increase subgroup format string above %05d"
+
+        # Convert IDs to float(groupNumber.SubGroupNumber) format, i.e. group 1 subgroup 11 = 1.00011
+        halo_ids = np.zeros(grp_ids.size, dtype=float)
+        for (ind, g), sg in zip(enumerate(grp_ids), subgrp_ids):
+            halo_ids[ind] = float(str(int(g)) + '.%05d' % int(sg))
+
+        parts_in_groups, part_groups = self._get_part_inds(halo_ids, part_ids, group_part_ids, sorted)
+
+        # Produce a dictionary containing the index of particles in each halo
+        halo_part_inds = {}
+        for ind, grp in zip(parts_in_groups, part_groups):
+            halo_part_inds.setdefault(grp, set()).update({ind})
+
+        # Now the dictionary is fully populated convert values from sets to arrays for indexing
+        for key, val in halo_part_inds.items():
+            halo_part_inds[key] = np.array(list(val))
+
+        return halo_part_inds
+
+    def get_single_group_part_inds(self, halo_id, sim, snapshot, part_type, all_parts=False, sorted=False):
+        ''' A wrapper function produce an array of particle indexes for a single group. NOTE: This will be VERY
+            inefficient if done for many halos individually, better to create a dictionary using one of the other
+            methods.
+
+        :param halo_id:    The group number of the halo for which particle indexes are desired [int]
+        :return:
+        '''
+
+        # Get the particle index dictionary
+        halo_part_inds = self.get_group_part_inds(sim, snapshot, part_type, all_parts, sorted)
+
+        # Extract the desired halo
+        parts_in_group = halo_part_inds[halo_id]
+
+        return parts_in_group
+
+    def get_single_subgroup_part_inds(self, subhalo_id, sim, snapshot, part_type, all_parts=False, sorted=False):
+        ''' A wrapper function produce an array of particle indexes for a single subgroup. NOTE: This will be VERY
+            inefficient if done for many halos individually, better to create a dictionary using one of the other
+            methods.
+
+        :param halo_id:    The subgroup number of the halo for which particle indexes are desired [float]
+                           NOTE: This must be of the form float(groupNumber.SubGroupNumber) format,
+                           i.e. group 1 subgroup 11 = 1.00011
+        :return:
+        '''
+
+        # Get the particle index dictionary
+        halo_part_inds = self.get_group_part_inds(sim, snapshot, part_type, all_parts, sorted)
+
+        # Extract the desired subhalo
+        parts_in_group = halo_part_inds[subhalo_id]
+
+        return parts_in_group
 
 
 @jit()

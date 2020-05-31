@@ -1,6 +1,6 @@
 # First Light And Reionisation Epoch Simulations (FLARES)
 
-A python convenience module for working with FLARES resimulation data.
+A python convenience module for working with FLARES data.
 
 ## Requirements
 
@@ -22,6 +22,15 @@ You can then just run
     import flares
 
 in any other scripts to get the flares class and associated functionality.
+
+## Set up and data location
+
+The FLARES data on COSMA are located here:
+
+    /cosma7/data/dp004/FLARES/FLARES-1
+
+You may need to update this location in `flares.py#L29` by changing the `self.directory` string.
+
 
 ## Tutorial
 
@@ -45,6 +54,56 @@ halo = fl.halos[0]
 tag = fl.tags[0]
 
 print (mstar[halo][tag][:10])
+```
+
+Creating distribution functions, e.g: stellar mass function for z=5:
+
+```
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import flares
+
+fl = flares.flares('./data/flares.hdf5', sim_type='FLARES')
+tag = fl.tags[-1]
+volume = (4/3)*np.pi*(fl.radius**3)
+
+mstar = fl.load_dataset('Mstar_30', arr_type='Galaxy')
+df = pd.read_csv('weight_files/weights_grid.txt')
+weights = np.array(df['weights'])
+
+bins = np.arange(8, 11.5, 0.2)
+bincen = (bins[1:]+bins[:-1])/2.
+binwidth = bins[1:] - bins[:-1]
+
+hist = np.zeros(len(bins)-1)
+err = np.zeros(len(bins)-1)
+
+for ii in range(len(weights)):
+    tmp, bin_edges = np.histogram(mstar[ii][tag], bins = bins)
+    hist+=tmp*weights[ii]
+    err+=np.square(np.sqrt(tmp)*weights[ii])
+    
+smf = hist/(volume*binwidth)
+smf_err = np.sqrt(err)/(volume*binwidth)
+
+fig, axs = plt.subplots(nrows=1, ncols=1, figsize=(5, 5), facecolor='w', edgecolor='k')
+
+y_lo, y_up = np.log10(smf)-np.log10(smf-smf_err), np.log10(smf+smf_err)-np.log10(smf)
+axs.errorbar(bincen, np.log10(smf), yerr=[y_lo, y_up], uplims=uplims, ls='', marker='o')
+
+axs.set_ylabel(r'$\mathrm{log}_{10}(\Phi/(\mathrm{cMpc}^{-3}\mathrm{dex}^{-1}))$', fontsize=14)
+axs.set_xlabel(r'$\mathrm{log}_{10}(\mathrm{M}_{\star}/\mathrm{M_{\odot})$', fontsize=14)
+axs.set_xlim((8, 11.4))
+axs.set_ylim((-8.2, -0.8))
+axs.set_xticks(np.arange(8., 11.5, 1))
+axs.grid(True, alpha = 0.4)
+axs.legend(frameon=False, fontsize = 12, numpoints=1, ncol = 2)
+axs.minorticks_on()
+axs.tick_params(axis='x', which='minor', direction='in')
+axs.tick_params(axis='y', which='minor', direction='in')
+
+plt.show()
 ```
 
 Extracting stellar particle information,
