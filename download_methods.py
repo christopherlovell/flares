@@ -141,7 +141,7 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
 
     if inp == 'FLARES':
         sim_type = 'FLARES'
-        fl = flares.flares(fname = './data/',sim_type=sim_type)
+        fl = flares.flares(fname = './data2/',sim_type=sim_type)
         num = str(num)
         if len(num) == 1:
             num =  '0'+num
@@ -201,9 +201,10 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     sp_mass_init = E.read_array('PARTDATA', sim, tag, '/PartType4/InitialMass', noH=True, physicalUnits=True, numThreads=4) * 1e10
     sp_smooth_Z = E.read_array('PARTDATA', sim, tag, '/PartType4/SmoothedMetallicity', numThreads=4)
     sp_Z = E.read_array('PARTDATA', sim, tag, '/PartType4/Metallicity', numThreads=4)
-    #sp_vel = E.read_array('PARTDATA', sim, tag, '/PartType4/Velocity', noH=True, physicalUnits=True, numThreads=4)
+    sp_vel = E.read_array('PARTDATA', sim, tag, '/PartType4/Velocity', noH=True, physicalUnits=True, numThreads=4)
     sp_sl = E.read_array('PARTDATA', sim, tag, '/PartType4/SmoothingLength', noH=True, physicalUnits=True, numThreads=4)
     sp_ft = E.read_array('PARTDATA', sim, tag, '/PartType4/StellarFormationTime', noH=True, physicalUnits=True, numThreads=4)
+    sp_ids = E.read_array('PARTDATA', sim, tag, '/PartType4/ParticleIDs', noH=True, physicalUnits=True, numThreads=4)
 
 
     gp_sgrpn = E.read_array('PARTDATA', sim, tag, '/PartType0/SubGroupNumber', numThreads=4)
@@ -211,8 +212,9 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     gp_mass = E.read_array('PARTDATA', sim, tag, '/PartType0/Mass', noH=True, physicalUnits=True, numThreads=4) * 1e10
     gp_smooth_Z = E.read_array('PARTDATA', sim, tag, '/PartType0/SmoothedMetallicity', numThreads=4)
     gp_Z = E.read_array('PARTDATA', sim, tag, '/PartType0/Metallicity', numThreads=4)
-    #gp_vel = E.read_array('PARTDATA', sim, tag, '/PartType0/Velocity', noH=True, physicalUnits=True, numThreads=4)
+    gp_vel = E.read_array('PARTDATA', sim, tag, '/PartType0/Velocity', noH=True, physicalUnits=True, numThreads=4)
     gp_sl = E.read_array('PARTDATA', sim, tag, '/PartType0/SmoothingLength', noH=True, physicalUnits=True, numThreads=4)
+    gp_ids = E.read_array('PARTDATA', sim, tag, '/PartType0/ParticleIDs', noH=True, physicalUnits=True, numThreads=4)
 
     kinp = np.load('./data/kernel_{}.npz'.format(kernel), allow_pickle=True)
     lkernel = kinp['kernel']
@@ -248,6 +250,12 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     tsmass = np.empty(sn)
     tsmass_init = np.empty(sn)
     tgmass = np.empty(gn)
+
+    tsid = np.empty(sn)
+    tgid = np.empty(gn)
+
+    tsvel = np.empty((sn,3))
+    tgvel = np.empty((gn,3))
 
     tsZ = np.empty(sn)
     tsZ_smooth = np.empty(sn)
@@ -305,9 +313,15 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
             tscood[sbeg:send] = sp_cood[s_ok]
             tgcood[gbeg:gend] = gp_cood[g_ok]
 
+            tsid[sbeg:send] = sp_ids[s_ok]
+            tgid[gbeg:gend] = gp_ids[g_ok]
+
             tsmass[sbeg:send] = sp_mass[s_ok]
             tsmass_init[sbeg:send] = sp_mass_init[s_ok]
             tgmass[gbeg:gend] = gp_mass[g_ok]
+
+            tsvel[sbeg:send] = sp_vel[s_ok]
+            tgvel[gbeg:gend] = gp_vel[g_ok]
 
             tsZ[sbeg:send] = sp_Z[s_ok]
             tsZ_smooth[sbeg:send] = sp_smooth_Z[s_ok]
@@ -345,9 +359,15 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     tscood = tscood[:tstot]
     tgcood = tgcood[:tgtot]
 
+    tsid = tsid[:tstot]
+    tgid = tgid[:tgtot]
+
     tsmass = tsmass[:tstot]
     tsmass_init = tsmass_init[:tstot]
     tgmass = tgmass[:tgtot]
+
+    tsvel = tsvel[:tstot]
+    tgvel = tgvel[:tgtot]
 
     tsZ = tsZ[:tstot]
     tsZ_smooth = tsZ_smooth[:tstot]
@@ -372,9 +392,13 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     gnum = comm.gather(tgnum, root=0)
     scood = comm.gather(tscood, root=0)
     gcood = comm.gather(tgcood, root=0)
+    sid = comm.gather(tsid, root=0)
+    gid = comm.gather(tgid, root=0)
     smass = comm.gather(tsmass, root=0)
     smass_init = comm.gather(tsmass_init, root=0)
     gmass = comm.gather(tgmass, root=0)
+    svel = comm.gather(tsvel, root=0)
+    gvel = comm.gather(tgvel, root=0)
     sZ = comm.gather(tsZ, root=0)
     sZ_smooth = comm.gather(tsZ_smooth, root=0)
     gZ = comm.gather(tgZ, root=0)
@@ -396,9 +420,15 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
         scood = np.concatenate(np.array(scood), axis = 0)/a
         gcood = np.concatenate(np.array(gcood), axis = 0)/a
 
+        sid = np.concatenate(np.array(sid))
+        gid = np.concatenate(np.array(gid))
+
         smass = np.concatenate(np.array(smass))
         smass_init = np.concatenate(np.array(smass_init))
         gmass = np.concatenate(np.array(gmass))
+
+        svel = np.concatenate(np.array(svel), axis = 0)
+        gvel = np.concatenate(np.array(gvel), axis = 0)
 
         sZ = np.concatenate(np.array(sZ))
         sZ_smooth = np.concatenate(np.array(sZ_smooth))
@@ -414,7 +444,7 @@ def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
         ok_centrals = grpno[indices] - 1
 
 
-    return indices, M200[ok_centrals], M500[ok_centrals], M2500[ok_centrals], SubhaloMass[indices], mstar[indices], cop[indices]/a, vel[indices], sfr_inst[indices], grpno[indices], sgrpno[indices], snum, gnum, scood, gcood, smass, smass_init, gmass, sZ, sZ_smooth, gZ, gZ_smooth, s_sml, g_sml, sage, Z_los
+    return indices, M200[ok_centrals], M500[ok_centrals], M2500[ok_centrals], SubhaloMass[indices], mstar[indices], cop[indices]/a, vel[indices], sfr_inst[indices], grpno[indices], sgrpno[indices], snum, gnum, scood, gcood, sid, gid, smass, smass_init, gmass, svel, gvel, sZ, sZ_smooth, gZ, gZ_smooth, s_sml, g_sml, sage, Z_los
 
 ##End of function `extract_info`
 
@@ -424,7 +454,7 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
     if inp == 'FLARES':
         if len(num) == 1:
             num =  '0'+num
-        filename = 'data/FLARES_{}_sp_info.hdf5'.format(num)
+        filename = 'data2/FLARES_{}_sp_info.hdf5'.format(num)
         sim_type = 'FLARES'
 
     elif inp == 'REF' or inp == 'AGNdT9':
@@ -445,7 +475,7 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
         print ("#################   Number of processors being used is {}   #############".format(size))
 
 
-    indices, M200, M500, M2500, SubhaloMass, mstar, cop, vel, sfr_inst,  grpno, sgrpno, snum, gnum, scood, gcood, smass, smass_init, gmass, sZ, sZ_smooth, gZ, gZ_smooth, s_sml, g_sml, sage, Z_los = extract_info(num, tag, kernel, inp)
+    indices, M200, M500, M2500, SubhaloMass, mstar, cop, vel, sfr_inst,  grpno, sgrpno, snum, gnum, scood, gcood, sid, gid, smass, smass_init, gmass, svel, gvel, sZ, sZ_smooth, gZ, gZ_smooth, s_sml, g_sml, sage, Z_los = extract_info(num, tag, kernel, inp)
 
 
     if rank == 0:
@@ -496,12 +526,22 @@ def save_to_hdf5(num, tag, kernel='sph-anarchy', inp='FLARES'):
         fl.create_dataset(gcood.T, 'G_Coordinates', '{}/Particle'.format(tag),
             desc = 'Gas particle coordinates', unit = 'cMpc')
 
+        fl.create_dataset(sid, 'S_ID', '{}/Particle'.format(tag),
+            desc = 'Star particle ID', unit = 'None')
+        fl.create_dataset(gid, 'G_ID', '{}/Particle'.format(tag),
+            desc = 'Gas particle ID', unit = 'None')
+
         fl.create_dataset(smass, 'S_Mass', '{}/Particle'.format(tag),
             desc = 'Star particle masses', unit = 'Msun')
         fl.create_dataset(smass_init, 'S_MassInitial', '{}/Particle'.format(tag),
             desc = 'Star particle masses at formation time', unit = 'Msun')
         fl.create_dataset(gmass, 'G_Mass', '{}/Particle'.format(tag),
             desc = 'Gas particle masses', unit = 'Msun')
+
+        fl.create_dataset(svel, 'S_Vel', '{}/Particle'.format(tag),
+            desc = 'Star particle peculiar velocity', unit = 'km/s')
+        fl.create_dataset(gvel, 'G_Vel', '{}/Particle'.format(tag),
+            desc = 'Gas particle peculiar velocity', unit = 'km/s')
 
         fl.create_dataset(sZ, 'S_Z', '{}/Particle'.format(tag),
             desc = 'Star particle metallicity', unit = 'No units')
