@@ -61,6 +61,8 @@ Creating distribution functions, e.g: stellar mass function for z=5:
 ```
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.rcParams['text.usetex'] = True
 import matplotlib.pyplot as plt
 import flares
 
@@ -80,7 +82,9 @@ hist = np.zeros(len(bins)-1)
 err = np.zeros(len(bins)-1)
 
 for ii in range(len(weights)):
-    tmp, bin_edges = np.histogram(mstar[ii][tag], bins = bins)
+    num = str(ii)
+    if ii/10 < 1: num = '0'+num
+    tmp, bin_edges = np.histogram(np.log10(mstar[num][tag]), bins = bins)
     hist+=tmp*weights[ii]
     err+=np.square(np.sqrt(tmp)*weights[ii])
     
@@ -90,18 +94,20 @@ smf_err = np.sqrt(err)/(volume*binwidth)
 fig, axs = plt.subplots(nrows=1, ncols=1, figsize=(5, 5), facecolor='w', edgecolor='k')
 
 y_lo, y_up = np.log10(smf)-np.log10(smf-smf_err), np.log10(smf+smf_err)-np.log10(smf)
-axs.errorbar(bincen, np.log10(smf), yerr=[y_lo, y_up], uplims=uplims, ls='', marker='o')
+axs.errorbar(bincen, np.log10(smf), yerr=[y_lo, y_up], ls='', marker='o', label=rF"Flares $z={float(tag[5:].replace('p','.'))}$")
 
 axs.set_ylabel(r'$\mathrm{log}_{10}(\Phi/(\mathrm{cMpc}^{-3}\mathrm{dex}^{-1}))$', fontsize=14)
-axs.set_xlabel(r'$\mathrm{log}_{10}(\mathrm{M}_{\star}/\mathrm{M_{\odot})$', fontsize=14)
+axs.set_xlabel(r'$\mathrm{log}_{10}(\mathrm{M}_{\star}/\mathrm{M_{\odot}})$', fontsize=14)
 axs.set_xlim((8, 11.4))
 axs.set_ylim((-8.2, -0.8))
 axs.set_xticks(np.arange(8., 11.5, 1))
-axs.grid(True, alpha = 0.4)
-axs.legend(frameon=False, fontsize = 12, numpoints=1, ncol = 2)
+axs.grid(True, alpha = 0.5)
+axs.legend(frameon=False, fontsize = 14, numpoints=1, ncol = 2)
 axs.minorticks_on()
 axs.tick_params(axis='x', which='minor', direction='in')
 axs.tick_params(axis='y', which='minor', direction='in')
+for label in (axs.get_xticklabels() + axs.get_yticklabels()):
+    label.set_fontsize(13)
 
 plt.show()
 ```
