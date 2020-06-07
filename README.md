@@ -67,6 +67,7 @@ import matplotlib.pyplot as plt
 import flares
 
 fl = flares.flares('./data/flares.hdf5', sim_type='FLARES')
+halo = fl.halos
 tag = fl.tags[-1]
 volume = (4/3)*np.pi*(fl.radius**3)
 
@@ -82,9 +83,7 @@ hist = np.zeros(len(bins)-1)
 err = np.zeros(len(bins)-1)
 
 for ii in range(len(weights)):
-    num = str(ii)
-    if ii/10 < 1: num = '0'+num
-    tmp, bin_edges = np.histogram(np.log10(mstar[num][tag]), bins = bins)
+    tmp, bin_edges = np.histogram(np.log10(mstar[halo[ii]][tag]), bins = bins)
     hist+=tmp*weights[ii]
     err+=np.square(np.sqrt(tmp)*weights[ii])
     
