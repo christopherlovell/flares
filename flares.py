@@ -307,7 +307,200 @@ class flares:
             dset.attrs['Description'] = desc
             #dset.close()
 
+    @staticmethod
+    def _get_part_inds(halo_ids, part_ids, group_part_ids, sorted):
+        """ A function to find the indexes and halo IDs associated to particles/a particle producing an array for each
 
+        :param halo_ids:
+        :param part_ids:
+        :param group_part_ids:
+        :return:
+        """
+
+        # Sort particle IDs if required and store an unsorted version in an array
+        if sorted:
+            part_ids = np.sort(part_ids)
+        unsort_part_ids = np.copy(part_ids)
+
+        # Get the indices that would sort the array (if the array is sorted this is just a range form 0-Npart)
+        if sorted:
+            sinds = np.arange(part_ids.size)
+        else:
+            sinds = np.argsort(part_ids)
+            part_ids = part_ids[sinds]
+
+        # Get the index of particles in the snapshot array from the in particles in a group array
+        sorted_index = np.searchsorted(part_ids, group_part_ids)  # find the indices that would sort the array
+        yindex = np.take(sinds, sorted_index, mode="raise")  # take the indices at the indices found above
+        mask = unsort_part_ids[yindex] != group_part_ids  # define the mask based on these particles
+        result = np.ma.array(yindex, mask=mask)  # create a mask array
+
+        # Apply the mask to the id arrays to get halo ids and the particle indices
+        part_groups = halo_ids[np.logical_not(result.mask)]  # halo ids
+        parts_in_groups = result.data[np.logical_not(result.mask)]  # particle indices
+
+        return parts_in_groups, part_groups
+
+    def get_group_part_inds(self, sim, snapshot, part_type, all_parts=False, sorted=False):
+        ''' A function to efficiently produce a dictionary of particle indexes from EAGLE particle data arrays
+            for SUBFIND groups.
+
+        :param sim:        Path to the snapshot file [str]
+        :param snapshot:   Snapshot identifier [str]
+        :param part_type:  The integer representing the particle type
+                           (0, 1, 4, 5: gas, dark matter, stars, black hole) [int]
+        :param all_parts:  Flag for whether to use all particles (SNAP group)
+                           or only particles in halos (PARTDATA group)  [bool]
+        :param sorted:     Flag for whether to produce indices in a sorted particle ID array
+                           or unsorted (order they are stored in) [bool]
+        :return:
+        '''
+
+        # Get the particle IDs for this particle type using eagle_IO
+        if all_parts:
+
+            # Get all particles in the simulation
+            part_ids = E.read_array('SNAP', sim, snapshot, 'PartType' + str(part_type) + '/ParticleIDs',
+                                    numThreads=8)
+
+            # Get only those particles in a halo
+            group_part_ids = E.read_array('PARTDATA', sim, snapshot, 'PartType' + str(part_type) + '/ParticleIDs',
+                                          numThreads=8)
+
+        else:
+
+            # Get only those particles in a halo
+            part_ids = E.read_array('PARTDATA', sim, snapshot, 'PartType' + str(part_type) + '/ParticleIDs',
+                                    numThreads=8)
+
+            # A copy of this array is needed for the extraction method
+            group_part_ids = np.copy(part_ids)
+
+        # Extract the group ID and subgroup ID each particle is contained within
+        grp_ids = E.read_array('PARTDATA', sim, snapshot, 'PartType' + str(part_type) + '/GroupNumber',
+                               numThreads=8)
+
+        # Remove particles in unbound groups (groupnumber < 0)
+        okinds = grp_ids < 0
+        group_part_ids = group_part_ids[okinds]
+        grp_ids = grp_ids[okinds]
+
+        parts_in_groups, part_groups = self._get_part_inds(grp_ids, part_ids, group_part_ids, sorted)
+
+        # Produce a dictionary containing the index of particles in each halo
+        halo_part_inds = {}
+        for ind, grp in zip(parts_in_groups, part_groups):
+            halo_part_inds.setdefault(grp, set()).update({ind})
+
+        # Now the dictionary is fully populated convert values from sets to arrays for indexing
+        for key, val in halo_part_inds.items():
+            halo_part_inds[key] = np.array(list(val))
+
+        return halo_part_inds
+
+    def get_subgroup_part_inds(self, sim, snapshot, part_type, all_parts=False, sorted=False):
+        ''' A function to efficiently produce a dictionary of particle indexes from EAGLE particle data arrays
+            for SUBFIND subgroups.
+
+        :param sim:        Path to the snapshot file [str]
+        :param snapshot:   Snapshot identifier [str]
+        :param part_type:  The integer representing the particle type
+                           (0, 1, 4, 5: gas, dark matter, stars, black hole) [int]
+        :param all_parts:  Flag for whether to use all particles (SNAP group)
+                           or only particles in halos (PARTDATA group)  [bool]
+        :param sorted:     Flag for whether to produce indices in a sorted particle ID array
+                           or unsorted (order they are stored in) [bool]
+        :return:
+        '''
+
+        # Get the particle IDs for this particle type using eagle_IO
+        if all_parts:
+
+            # Get all particles in the simulation
+            part_ids = E.read_array('SNAP', sim, snapshot, 'PartType' + str(part_type) + '/ParticleIDs',
+                                    numThreads=8)
+
+            # Get only those particles in a halo
+            group_part_ids = E.read_array('PARTDATA', sim, snapshot, 'PartType' + str(part_type) + '/ParticleIDs',
+                                          numThreads=8)
+
+        else:
+
+            # Get only those particles in a halo
+            part_ids = E.read_array('PARTDATA', sim, snapshot, 'PartType' + str(part_type) + '/ParticleIDs',
+                                    numThreads=8)
+
+            # A copy of this array is needed for the extraction method
+            group_part_ids = np.copy(part_ids)
+
+        # Extract the group ID and subgroup ID each particle is contained within
+        grp_ids = E.read_array('PARTDATA', sim, snapshot, 'PartType' + str(part_type) + '/GroupNumber',
+                               numThreads=8)
+        subgrp_ids = E.read_array('PARTDATA', sim, snapshot, 'PartType' + str(part_type) + '/SubGroupNumber',
+                                  numThreads=8)
+
+        # Remove particles not associated to a subgroup (subgroupnumber == 2**30 == 1073741824)
+        okinds = subgrp_ids != 1073741824
+        group_part_ids = group_part_ids[okinds]
+        grp_ids = grp_ids[okinds]
+        subgrp_ids = subgrp_ids[okinds]
+
+        # Ensure no subgroup ID exceeds 99999
+        assert subgrp_ids.max() < 99999, "Found too many subgroups, need to increase subgroup format string above %05d"
+
+        # Convert IDs to float(groupNumber.SubGroupNumber) format, i.e. group 1 subgroup 11 = 1.00011
+        halo_ids = np.zeros(grp_ids.size, dtype=float)
+        for (ind, g), sg in zip(enumerate(grp_ids), subgrp_ids):
+            halo_ids[ind] = float(str(int(g)) + '.%05d' % int(sg))
+
+        parts_in_groups, part_groups = self._get_part_inds(halo_ids, part_ids, group_part_ids, sorted)
+
+        # Produce a dictionary containing the index of particles in each halo
+        halo_part_inds = {}
+        for ind, grp in zip(parts_in_groups, part_groups):
+            halo_part_inds.setdefault(grp, set()).update({ind})
+
+        # Now the dictionary is fully populated convert values from sets to arrays for indexing
+        for key, val in halo_part_inds.items():
+            halo_part_inds[key] = np.array(list(val))
+
+        return halo_part_inds
+
+    def get_single_group_part_inds(self, halo_id, sim, snapshot, part_type, all_parts=False, sorted=False):
+        ''' A wrapper function produce an array of particle indexes for a single group. NOTE: This will be VERY
+            inefficient if done for many halos individually, better to create a dictionary using one of the other
+            methods.
+
+        :param halo_id:    The group number of the halo for which particle indexes are desired [int]
+        :return:
+        '''
+
+        # Get the particle index dictionary
+        halo_part_inds = self.get_group_part_inds(sim, snapshot, part_type, all_parts, sorted)
+
+        # Extract the desired halo
+        parts_in_group = halo_part_inds[halo_id]
+
+        return parts_in_group
+
+    def get_single_subgroup_part_inds(self, subhalo_id, sim, snapshot, part_type, all_parts=False, sorted=False):
+        ''' A wrapper function produce an array of particle indexes for a single subgroup. NOTE: This will be VERY
+            inefficient if done for many halos individually, better to create a dictionary using one of the other
+            methods.
+
+        :param halo_id:    The subgroup number of the halo for which particle indexes are desired [float]
+                           NOTE: This must be of the form float(groupNumber.SubGroupNumber) format,
+                           i.e. group 1 subgroup 11 = 1.00011
+        :return:
+        '''
+
+        # Get the particle index dictionary
+        halo_part_inds = self.get_group_part_inds(sim, snapshot, part_type, all_parts, sorted)
+
+        # Extract the desired subhalo
+        parts_in_group = halo_part_inds[subhalo_id]
+
+        return parts_in_group
 
 
 @jit()
@@ -408,3 +601,62 @@ def get_recent_SFR(tag, t = 100, inp = 'FLARES'):
         desc = F"SFR of the galaxy averaged over the last {t}Myr", unit = "Msun/yr")
 
     print (F"Saved the SFR averaged over {t}Myr with tag {tag} for {inp} to file")
+
+
+#Weighted quantiles
+def weighted_quantile(values, quantiles, sample_weight=None,
+                      values_sorted=False, old_style=False):
+    """
+    Taken from From https://stackoverflow.com/a/29677616/1718096
+
+    Very close to numpy.percentile, but supports weights.
+    NOTE: quantiles should be in [0, 1]!
+    :param values: numpy.array with data
+    :param quantiles: array-like with many quantiles needed
+    :param sample_weight: array-like of the same length as `array`
+    :param values_sorted: bool, if True, then will avoid sorting of
+        initial array
+    :param old_style: if True, will correct output to be consistent
+        with numpy.percentile.
+    :return: numpy.array with computed quantiles.
+    """
+
+    # do some housekeeping
+    values = np.array(values)
+    quantiles = np.array(quantiles)
+    if sample_weight is None:
+        sample_weight = np.ones(len(values))
+    sample_weight = np.array(sample_weight)
+    assert np.all(quantiles >= 0) and np.all(quantiles <= 1), \
+        'quantiles should be in [0, 1]'
+
+    # if not sorted, sort values array
+    if not values_sorted:
+        sorter = np.argsort(values)
+        values = values[sorter]
+        sample_weight = sample_weight[sorter]
+
+
+    weighted_quantiles = np.cumsum(sample_weight) - 0.5 * sample_weight
+    if old_style:
+        # To be convenient with numpy.percentile
+        weighted_quantiles -= weighted_quantiles[0]
+        weighted_quantiles /= weighted_quantiles[-1]
+    else:
+        weighted_quantiles /= np.sum(sample_weight)
+    return np.interp(quantiles, weighted_quantiles, values)
+
+
+
+def binned_weighted_quantile(x,y,weights,bins,quantiles):
+
+    # if ~isinstance(quantiles,list):
+    #     quantiles = [quantiles]
+
+    out = np.full((len(bins)-1,len(quantiles)),np.nan)
+    for i,(b1,b2) in enumerate(zip(bins[:-1],bins[1:])):
+        mask = (x >= b1) & (x < b2)
+        if np.sum(mask) > 0:
+            out[i,:] = weighted_quantile(y[mask],quantiles,sample_weight=weights[mask])
+
+    return np.squeeze(out)
