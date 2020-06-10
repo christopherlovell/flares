@@ -57,7 +57,7 @@ def make_faceon(cop, this_g_cood, this_g_mass, this_g_vel):
 
 
 
-def extract_subfind_info(fname='data/flares.hdf5', inp='FLARES', overwrite=False, threads=8):
+def extract_subfind_info(fname='data/flares.hdf5', inp='FLARES', overwrite=False, threads=8, verbose=False):
 
     fl = flares.flares(fname,inp)
     indices = fl.load_dataset('Indices')
@@ -75,52 +75,24 @@ def extract_subfind_info(fname='data/flares.hdf5', inp='FLARES', overwrite=False
 
             print(tag)
 
-            halodir = fl.directory+'/FLARES_'+halo+'/data/'
+            halodir = fl.directory+'/GEAGLE_'+halo+'/data/'
 
-            if (fl._check_hdf5('%s/%s/Subhalo/Mhalo'%(halo,tag)) is False) |\
-                     (overwrite == True):
+            properties = ['MassType','SF/Mass']
+            conv_factor = [1e10,1e10]
+            save_str = ['MassType','SF_Mass']
 
+            for _prop,_conv,_save in zip(properties,conv_factor,save_str):
+            
+                if (fl._check_hdf5('%s/%s/Subhalo/%s'%(halo,tag,_prop)) is False) |\
+                         (overwrite == True):
+    
+                    _arr = E.read_array("SUBFIND", halodir, tag,
+                                        "/Subhalo/%s"%_prop,
+                                        numThreads=threads, noH=True) * _conv
+   
 
-                _mhalo = E.read_array("SUBFIND", halodir, tag,
-                                     "/Subhalo/Mass",
-                                     numThreads=threads, noH=True) * 1e10
-
-                fl.create_dataset(_mhalo[indices[halo][tag].astype(int)], 'Mhalo',
-                                  '%s/%s/Subhalo/'%(halo,tag), overwrite=True)
-
-
-            if (fl._check_hdf5('%s/%s/Subhalo/Centrals'%(halo,tag)) is False) |\
-                    (overwrite == True):
-
-                _centrals = (E.read_array("SUBFIND", halodir, tag,
-                                         "/Subhalo/SubGroupNumber",
-                                         numThreads=threads, noH=True) == 0)
-
-                fl.create_dataset(_centrals[indices[halo][tag].astype(int)], 'Centrals',
-                                  '%s/%s/Subhalo/'%(halo,tag), overwrite=True)
-
-
-            # if (fl._check_hdf5(fname, '%s/%s'%(halo,tag)) is False) |\
-            #         (overwrite == True):
-            #
-            #     mstar = E.read_array("SUBFIND", halodir, tag,
-            #                          "/Subhalo/Stars/Mass",
-            #                          numThreads=threads, noH=True)
-
-            #     fl.write_data_h5py(fname, '%s/%s/Subhalo/'%(halo,tag), 'Mstar',
-            #                     data=mstar, overwrite=True)
-            #
-
-            # if (fl._check_hdf5(fname, 'sfr/%s/%s'%(halo,tag)) is False) |\
-            #         (overwrite == True):
-            #
-            #     sfr = E.read_array("SUBFIND", halodir, tag,
-            #                        "/Subhalo/StarFormationRate",
-            #                        numThreads=threads, noH=True)
-
-            #     fl.write_data_h5py(fname, '%s/%s/Subhalo/'%(halo,tag), 'SFR',
-            #                     data=sfr, overwrite=True)
-
+                    fl.create_dataset(_arr[indices[halo][tag].astype(int)], _save,
+                                      '%s/%s/Galaxy/'%(halo,tag), overwrite=True, verbose=verbose)
 
 
 

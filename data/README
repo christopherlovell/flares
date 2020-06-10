@@ -1,1 +1,7 @@
 data directory
+
+
+
+
+`flares.hdf5` is a local copy
+`flares.h5` is a symbolic link to Aswin's (updated) version

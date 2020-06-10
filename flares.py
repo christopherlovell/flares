@@ -54,6 +54,9 @@ class flares:
                                   '009_z006p000','010_z005p000'
                                   #,'011_z004p770'
                                   ])
+
+            self.zeds = [float(tag[5:].replace('p','.')) for tag in self.tags]
+
             ## update with weights file location
             self.weights = '/cosma7/data/dp004/dc-love2/codes/ic_selection/weights_grid.txt'
         elif sim_type=="PERIODIC":
