@@ -68,6 +68,24 @@ class flares:
 
 
 
+    def print_keys(self, obj='/'):
+        with h5py.File(self.fname,'r') as f:
+           if isinstance(f[obj], h5py.Dataset):
+               print("Dataset, no keys.")
+           else:
+               print(list(f[obj].keys()))
+
+
+    def print_attributes(self,obj):
+        with h5py.File(self.fname,'r') as f: 
+            _attrs = list(f[obj].attrs.keys())
+            if len(_attrs) < 1:
+                print("No attributes.")
+            else:
+                for key in _attrs:
+                    print("%s:"%key, f[obj].attrs[key])     
+
+
     # @jit
     def _sphere(self, coords, a, b, c, r):
 
