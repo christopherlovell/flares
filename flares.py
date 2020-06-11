@@ -267,6 +267,9 @@ class flares:
 
 
     def load_dataset(self,name,arr_type='Galaxy'):
+        """ 
+        Load a dataset for *all* halos and tags
+        """
 
         if self.sim_type == "FLARES":
             out = {halo: {tag: None for tag in self.tags} for halo in self.halos}
@@ -282,6 +285,25 @@ class flares:
                 for tag in self.tags:
                     print('%s/%s/%s'%(tag,arr_type,name))
                     out[tag] = f['%s/%s/%s'%(tag,arr_type,name)][:]
+
+        return out
+
+
+    def _load_single_dataset(self,name,halo,tag,arr_type='Galaxy',verbose=False):
+        """
+        Identical to `load_dataset` but for a single halo/tag
+        """
+
+        if self.sim_type == "FLARES":
+            # out = {halo: {tag: None for tag in self.tags} for halo in self.halos}
+
+            with h5py.File(self.fname,'r') as f:
+                out = f['%s/%s/%s/%s'%(halo,tag,arr_type,name)][:]
+        elif self.sim_type == "PERIODIC":
+
+            with h5py.File(self.fname,'r') as f:
+                if verbose: print('%s/%s/%s'%(tag,arr_type,name))
+                out = f['%s/%s/%s'%(tag,arr_type,name)][:]
 
         return out
 
@@ -306,6 +328,60 @@ class flares:
             dset = h5f[loc]
             dset.attrs['Description'] = desc
             #dset.close()
+
+
+    def get_particles(self, p_str='S_Age',halo='00',tag='005_z010p000', verbose=False):
+        """
+        Grab particle properties for the given halo/tag and the given datasets 
+
+        Args:
+            p_str (str or list) particle dataset string, or a list / tuple of these strings
+            halo (str)
+            tag (str)
+            verbose (bool)
+
+        Returns:
+            out (dict)  
+        """
+        if verbose: print("Getting particle array lengths...")
+        # get particle array lengths for each galaxy
+        S_length = self.load_dataset('S_Length',arr_type='Galaxy')
+        # subset halo/tag
+        S_len = S_length[halo][tag]
+    
+        if verbose: print("Finding array indices...")
+        # find beginning:end indexes for each galaxy
+        begin = np.zeros(len(S_len), dtype = np.int64)
+        end = np.zeros(len(S_len), dtype = np.int64)
+        begin[1:] = np.cumsum(S_len)[:-1]
+        end = np.cumsum(S_len)
+    
+        if verbose: print("Getting particle data...")
+        _p = {}
+        if type(p_str) in [list,tuple]:
+            for _str in p_str:
+                _p[_str] = self._load_single_dataset(_str,halo,tag,arr_type='Particle')
+        else:
+            _p[p_str] = self._load_single_dataset(p_str,halo,tag,arr_type='Particle')
+    
+    
+        if verbose: print("Subsetting particles for each galaxy...")
+        # output dictionary of particle properties
+        out = {}
+        for i in np.arange(len(S_len)): # loop through gals
+            out[i] = {}
+    
+            # if more than one property, loop through them
+            if type(p_str) in [list,tuple]:
+                for _str in p_str:
+                    out[i][_str] = _p[_str][begin[i]:end[i]]
+            else:
+                out[i][p_str] = _p[p_str][begin[i]:end[i]]
+    
+    
+        return out
+
+
 
     @staticmethod
     def _get_part_inds(halo_ids, part_ids, group_part_ids, sorted):
