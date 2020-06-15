@@ -57,7 +57,11 @@ def make_faceon(cop, this_g_cood, this_g_mass, this_g_vel):
 
 
 
-def extract_subfind_info(fname='data/flares.hdf5', inp='FLARES', overwrite=False, threads=8, verbose=False):
+def extract_subfind_info(fname='data/flares.hdf5', inp='FLARES', 
+                         properties = {'properties': ['MassType'], 
+                                       'conv_factor': [1e10],
+                                       'save_str': ['MassType']},
+                         overwrite=False, threads=8, verbose=False):
 
     fl = flares.flares(fname,inp)
     indices = fl.load_dataset('Indices')
@@ -71,21 +75,21 @@ def extract_subfind_info(fname='data/flares.hdf5', inp='FLARES', overwrite=False
         for tag in fl.tags:
 
             fl.create_group('%s/%s'%(halo,tag))
-            fl.create_group('%s/%s/Subhalo'%(halo,tag))
+            fl.create_group('%s/%s/Galaxy'%(halo,tag))
 
             print(tag)
 
             halodir = fl.directory+'/GEAGLE_'+halo+'/data/'
 
-            properties = ['MassType','SF/Mass']
-            conv_factor = [1e10,1e10]
-            save_str = ['MassType','SF_Mass']
+            props = properties['properties']
+            conv_factor = properties['conv_factor']
+            save_str = properties['save_str']
 
-            for _prop,_conv,_save in zip(properties,conv_factor,save_str):
+            for _prop,_conv,_save in zip(props,conv_factor,save_str):
             
                 if (fl._check_hdf5('%s/%s/Subhalo/%s'%(halo,tag,_prop)) is False) |\
                          (overwrite == True):
-    
+
                     _arr = E.read_array("SUBFIND", halodir, tag,
                                         "/Subhalo/%s"%_prop,
                                         numThreads=threads, noH=True) * _conv
