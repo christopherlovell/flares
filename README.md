@@ -34,9 +34,15 @@ You may need to update this location in `flares.py#L29` by changing the `self.di
 
 ## Tutorial
 
-`flares.py` contains the `flares` class, which contains a lot of useful functionality for anlysing the resims. The most important information is the specified halos (`flares.halos`) and snapshots (`flares.tags`) you wish to analyse; these should be updated as new resims are completed.
+`flares.py` contains the `flares` class, which contains a lot of useful functionality for analysing the resims. 
+The most important information is the specified halos (`flares.halos`) and snapshots (`flares.tags`) you wish to analyse; these should be updated as new resims are completed.
 
-`download_methods.py` fetches the specified arrays from all resims and puts them in a single hdf5 file in the `data/` folder. Simply update these scripts with the data you wish to download, specify if you wish to `overwrite` any existing data. Run this ecript using the batchscript provided `download_particles.cosma.sh` for getting the particle data and run `download_subfind.py` just for the subfind data. Then run `create_UVgrid.cosma.sh` to get the value of kappa and use `download_phot.cosma.sh` to extract the photometry information. These are made into a single file `flares.hdf5` with the data structure as `Resim_num/Property_type/Property' where Resim_num is the number of the resim in the FLARES (see [here](https://docs.google.com/spreadsheets/d/1NzQee05rNCml1YEKXuD8L9JOW5Noh8oj9K9bcS2RQlY/edit?usp=sharing)), Property_type can be either Galaxy (like stellar mass, sfr, etc) or Particle (individual properties of gas/stellar particles) and Property is the required property. 
+`download_methods.py` fetches the specified arrays from all resims and puts them in a single hdf5 file in the `data/` folder. 
+Simply update these scripts with the data you wish to download, specify if you wish to `overwrite` any existing data. 
+Run this script using one of the following batchscripts, `download_particles.cosma.sh` for getting the particle data and run `download_subfind.py` for just the subfind data.
+If you wish to generate photometry for all galaxies you will need to run `create_UVgrid.cosma.sh` to get the value of kappa, and use `download_phot.cosma.sh` to extract the photometry information. 
+
+Once this has completed you will have a single file `data/flares.hdf5` with the following (rough) data structure: `Resim_num/Property_type/Property`, where `Resim_num` is the number of resims (see [here](https://docs.google.com/spreadsheets/d/1NzQee05rNCml1YEKXuD8L9JOW5Noh8oj9K9bcS2RQlY/edit?usp=sharing)), `Property_type` can be either Galaxy (like stellar mass, sfr, etc) or Particle (individual properties of gas/stellar particles) and `Property` is the required property. 
 
 
 
