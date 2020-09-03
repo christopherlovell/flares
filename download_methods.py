@@ -60,8 +60,9 @@ def make_faceon(cop, this_g_cood, this_g_mass, this_g_vel):
 def extract_subfind_info(fname='data/flares.hdf5', inp='FLARES', 
                          properties = {'properties': ['MassType'], 
                                        'conv_factor': [1e10],
+                                       'arr_idx': [None],
                                        'save_str': ['MassType']},
-                         overwrite=False, threads=8, verbose=False):
+                         overwrite=False, threads=8, write_out=True, verbose=False):
 
     fl = flares.flares(fname,inp)
     indices = fl.load_dataset('Indices')
@@ -81,11 +82,12 @@ def extract_subfind_info(fname='data/flares.hdf5', inp='FLARES',
 
             halodir = fl.directory+'/GEAGLE_'+halo+'/data/'
 
-            props = properties['properties']
-            conv_factor = properties['conv_factor']
-            save_str = properties['save_str']
-
-            for _prop,_conv,_save in zip(props,conv_factor,save_str):
+            for _prop,_conv,_save,_arr_idx in \
+                    zip(properties['properties'],
+                        properties['conv_factor'],
+                        properties['save_str'],
+                        properties['arr_idx']):
+                        
             
                 if (fl._check_hdf5('%s/%s/Subhalo/%s'%(halo,tag,_prop)) is False) |\
                          (overwrite == True):
@@ -93,12 +95,108 @@ def extract_subfind_info(fname='data/flares.hdf5', inp='FLARES',
                     _arr = E.read_array("SUBFIND", halodir, tag,
                                         "/Subhalo/%s"%_prop,
                                         numThreads=threads, noH=True) * _conv
-   
 
-                    fl.create_dataset(_arr[indices[halo][tag].astype(int)], _save,
-                                      '%s/%s/Galaxy/'%(halo,tag), overwrite=True, verbose=verbose)
+                    if arr_idx is not None:
+                        _arr[:arr_idx]
 
 
+                    if write_out is False:
+                        # return array WITHOUT indices filtering (be careful)
+                        return _arr
+                    else:
+                        fl.create_dataset(_arr[indices[halo][tag].astype(int)], _save,
+                                          '%s/%s/Galaxy/'%(halo,tag), overwrite=True, verbose=verbose)
+
+
+
+def initialise_master_file():
+    """
+    Run the initial subfind download and create the indices array
+    """
+    
+    print (F"Extracing information from {inp} {num} {tag}")
+
+    if inp == 'FLARES':
+        sim_type = 'FLARES'
+        fl = flares.flares(fname = './data2/',sim_type=sim_type)
+        num = str(num)
+        if len(num) == 1:
+            num =  '0'+num
+        dir = fl.directory
+        sim = F"{dir}GEAGLE_{num}/data/"
+
+    elif inp == 'REF':
+        sim_type = 'PERIODIC'
+        fl = flares.flares(fname = './data/',sim_type=sim_type)
+        sim = fl.ref_directory
+
+    elif inp == 'AGNdT9':
+        sim_type = 'PERIODIC'
+        fl = flares.flares(fname = './data/',sim_type=sim_type)
+        sim = fl.agn_directory
+
+    else:
+        ValueError("Type of input simulation not recognized")
+
+    if rank == 0:
+        print (F"Sim location: {sim}, tag: {tag}")
+
+    #Simulation properties
+    z = E.read_header('SUBFIND', sim, tag, 'Redshift')
+    a = E.read_header('SUBFIND', sim, tag, 'ExpansionFactor')
+    
+    if inp == 'FLARES':
+        ## Selecting the subhalos within our region
+        
+        for halo in fl.halos:
+            print(halo)
+            fl.create_group(halo)
+            for tag in fl.tags:
+                cop = E.read_array('SUBFIND', halo, tag, '/Subhalo/CentreOfPotential', noH=False, physicalUnits=False, numThreads=4) #units of cMpc/h
+                cen, r, min_dist = fl.spherical_region(halo, tag)  #units of cMpc/h
+                indices = np.where(np.logical_and(mstar >= 10**7., np.sqrt(np.sum((cop-cen)**2, axis = 1))<=fl.radius) == True)[0]
+                fl.create_dataset(indices.astype(int), 'Indices', '%s/%s/Galaxy/'%(halo,tag), overwrite=True, verbose=verbose)
+
+    else:
+        indices = np.where(mstar >= 10**7.)[0]
+
+    ## Galaxy global properties
+    properties = {'properties': ['FOF/Group_M_Crit200','FOF/Group_M_Crit500','FOF/Group_M_Crit2500',
+                                 'Subhalo/Mass','/Subhalo/ApertureMeasurements/Mass/030kpc','Subhalo/SubGroupNumber',
+                                 'Subhalo/GroupNumber','Subhalo/Velocity'],
+                  'conv_factor': [1e10, 1e10, 1e10, 1e10, 1e10, 1, 1, 1],
+                  'arr_idx': [None, None, None, None, 4, None, None, None],
+                  'save_str': [] 
+                 }
+
+    extract_subfind_info(properties)
+
+
+    # M200 = E.read_array('SUBFIND', sim, tag, 'FOF/Group_M_Crit200', numThreads=4, noH=True, physicalUnits=True)*1e10
+    # M500 = E.read_array('SUBFIND', sim, tag, '/FOF/Group_M_Crit500', numThreads=4, noH=True, physicalUnits=True)*1e10
+    # M2500 = E.read_array('SUBFIND', sim, tag, '/FOF/Group_M_Crit2500', numThreads=4, noH=True, physicalUnits=True)*1e10
+    # SubhaloMass = E.read_array('SUBFIND', sim, tag, '/Subhalo/Mass', numThreads=4, noH=True, physicalUnits=True)*1e10
+    # mstar = E.read_array('SUBFIND', sim, tag, '/Subhalo/ApertureMeasurements/Mass/030kpc', numThreads=4, noH=True, physicalUnits=True)[:,4]*1e10
+    # sgrpno = E.read_array('SUBFIND', sim, tag, '/Subhalo/SubGroupNumber', numThreads=4)
+    # grpno = E.read_array('SUBFIND', sim, tag, '/Subhalo/GroupNumber', numThreads=4)
+    # vel = E.read_array('SUBFIND', sim, tag, '/Subhalo/Velocity', noH=True, physicalUnits=True, numThreads=4)
+
+
+
+
+
+    cop = E.read_array('SUBFIND', sim, tag, '/Subhalo/CentreOfPotential', noH=True, physicalUnits=True, numThreads=4)
+    sfr_inst =  E.read_array('SUBFIND', sim, tag, '/Subhalo/ApertureMeasurements/SFR/030kpc', numThreads=4, noH=True, physicalUnits=True)
+
+
+    return None
+
+
+def extract_particle_array():
+    """
+    Extract a particle array
+    """
+    return None
 
 def extract_info(num, tag, kernel='sph-anarchy', inp='FLARES'):
     """
