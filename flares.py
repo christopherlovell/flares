@@ -63,6 +63,7 @@ class flares:
             self.tags = np.array(['002_z009p993','003_z008p988',
                                   '004_z008p075','005_z007p050','006_z005p971',
                                   '008_z005p037'])
+            self.zeds = [float(tag[5:].replace('p','.')) for tag in self.tags]
         else:
             raise ValueError("sim_type not recognised")
 
